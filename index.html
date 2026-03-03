@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>TuxtlaRutas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --bg:#e8ecef;
+  --glass:rgba(255,255,255,0.62);
+  --glass2:rgba(255,255,255,0.82);
+  --glass-border:rgba(255,255,255,0.9);
+  --shadow:rgba(0,0,0,0.10);
+  --shadow2:rgba(0,0,0,0.18);
+  --text:#1a1f2e;
+  --muted:#7a8499;
+  --accent:#1eb89a;
+  --accent2:#0ea5e9;
+  --font:'Outfit',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--font)}
+
+/* ═══ MAP FULL SCREEN ═══ */
+#map{position:fixed;inset:0;z-index:0}
+
+/* ═══ TOP BAR ═══ */
+#topbar{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);
+  z-index:900;
+  background:var(--glass2);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  border:1.5px solid var(--glass-border);
+  border-radius:22px;
+  box-shadow:0 8px 32px var(--shadow2),0 1px 0 rgba(255,255,255,0.8) inset;
+  padding:10px 18px;
+  display:flex;align-items:center;gap:14px;
+  min-width:320px;max-width:90vw;
+}
+.topbar-icon{
+  width:36px;height:36px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(30,184,154,0.35);
+}
+.topbar-title{font-size:.95rem;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.topbar-title span{color:var(--accent)}
+.topbar-sub{font-size:.6rem;color:var(--muted);margin-top:1px;font-weight:400}
+.topbar-divider{width:1px;height:28px;background:rgba(0,0,0,0.08);flex-shrink:0}
+.topbar-stat{text-align:center}
+.topbar-stat-n{font-size:1.1rem;font-weight:800;color:var(--accent);line-height:1}
+.topbar-stat-l{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
+/* ═══ SEARCH BAR ═══ */
+#searchbar{
+  position:fixed;top:84px;left:50%;transform:translateX(-50%);
+  z-index:900;
+  width:340px;max-width:90vw;
+}
+.search-inner{
+  background:var(--glass2);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  border:1.5px solid var(--glass-border);
+  border-radius:16px;
+  box-shadow:0 6px 24px var(--shadow);
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;
+  transition:box-shadow .2s,border-color .2s;
+}
+.search-inner:focus-within{
+  border-color:var(--accent);
+  box-shadow:0 6px 24px var(--shadow),0 0 0 3px rgba(30,184,154,0.15);
+}
+.search-inner svg{color:var(--muted);flex-shrink:0}
+.search-inner input{
+  background:none;border:none;outline:none;
+  font-family:var(--font);font-size:.82rem;color:var(--text);width:100%;font-weight:500;
+}
+.search-inner input::placeholder{color:var(--muted);font-weight:400}
+.search-clear{
+  background:rgba(0,0,0,0.07);border:none;border-radius:6px;
+  width:20px;height:20px;cursor:pointer;display:none;
+  align-items:center;justify-content:center;font-size:10px;color:var(--muted);
+  flex-shrink:0;transition:background .15s;
+}
+.search-clear.show{display:flex}
+.search-clear:hover{background:rgba(0,0,0,0.12)}
+
+/* ═══ BOTTOM PANEL ═══ */
+#panel{
+  position:fixed;bottom:0;left:0;right:0;
+  z-index:800;
+  display:flex;flex-direction:column;
+  pointer-events:none;
+}
+
+/* Route cards scroll strip */
+#cards-strip{
+  display:flex;gap:12px;
+  padding:0 20px 14px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  pointer-events:all;
+}
+#cards-strip::-webkit-scrollbar{display:none}
+
+.rcard{
+  flex-shrink:0;
+  width:180px;
+  background:var(--glass2);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  border:1.5px solid var(--glass-border);
+  border-radius:20px;
+  box-shadow:0 6px 24px var(--shadow),0 1px 0 rgba(255,255,255,0.8) inset;
+  padding:14px;
+  cursor:pointer;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),
+             box-shadow .25s,border-color .2s,background .2s;
+  position:relative;overflow:hidden;
+}
+.rcard::before{
+  content:'';position:absolute;inset:0;border-radius:20px;
+  background:linear-gradient(135deg,rgba(255,255,255,0.6),transparent);
+  pointer-events:none;
+}
+.rcard:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 14px 40px var(--shadow2)}
+.rcard.active{
+  border-color:var(--rc);
+  background:rgba(255,255,255,0.9);
+  transform:translateY(-6px) scale(1.03);
+  box-shadow:0 16px 48px var(--shadow2),0 0 0 2px color-mix(in srgb,var(--rc) 30%,transparent);
+}
+
+.rcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.rcard-num{
+  width:38px;height:38px;border-radius:12px;
+  background:var(--rc);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:.9rem;color:#fff;
+  box-shadow:0 4px 12px color-mix(in srgb,var(--rc) 50%,transparent);
+  transition:transform .2s;
+}
+.rcard.active .rcard-num{transform:scale(1.1)}
+.rcard-eye{
+  width:28px;height:28px;border-radius:9px;
+  background:rgba(0,0,0,0.06);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:all .18s;
+}
+.rcard.active .rcard-eye{background:var(--rc);color:#fff}
+.rcard-eye:hover{background:rgba(0,0,0,0.1)}
+.rcard-name{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.rcard-desc{font-size:.65rem;color:var(--muted);line-height:1.4;font-weight:400}
+.rcard-stops{
+  display:flex;align-items:center;gap:4px;margin-top:8px;
+  font-size:.62rem;color:var(--muted);font-weight:500;
+}
+.rcard-stops .dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--rc);display:inline-block;
+}
+.rcard.hidden{display:none}
+
+/* ═══ BOTTOM NAV ═══ */
+#bottomnav{
+  margin:0 12px 20px;
+  pointer-events:all;
+  background:var(--glass2);
+  backdrop-filter:blur(24px) saturate(2);
+  -webkit-backdrop-filter:blur(24px) saturate(2);
+  border:1.5px solid var(--glass-border);
+  border-radius:28px;
+  box-shadow:0 8px 40px var(--shadow2),0 1px 0 rgba(255,255,255,0.9) inset;
+  padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-items{display:flex;align-items:center;gap:0;flex:1;justify-content:space-around}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;padding:6px 16px;border-radius:16px;
+  transition:all .2s;background:none;border:none;
+  font-family:var(--font);
+}
+.nav-item:hover{background:rgba(0,0,0,0.05)}
+.nav-item.active{background:rgba(0,0,0,0.06)}
+.nav-item svg,.nav-item .nav-emoji{
+  font-size:20px;color:var(--muted);transition:all .2s;
+}
+.nav-item.active svg,.nav-item.active .nav-emoji{color:var(--text)}
+.nav-label{font-size:.6rem;color:var(--muted);font-weight:500;transition:color .2s}
+.nav-item.active .nav-label{color:var(--text);font-weight:700}
+.nav-add{
+  width:52px;height:52px;border-radius:18px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  box-shadow:0 6px 20px rgba(30,184,154,0.45);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:none;transition:transform .2s,box-shadow .2s;
+  font-size:24px;color:#fff;font-weight:300;
+  flex-shrink:0;
+}
+.nav-add:hover{transform:scale(1.08);box-shadow:0 8px 28px rgba(30,184,154,0.55)}
+.nav-add:active{transform:scale(.96)}
+
+/* ═══ INFO POPUP (route detail) ═══ */
+#info-popup{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(.88);
+  z-index:2000;
+  width:320px;max-width:90vw;
+  background:var(--glass2);
+  backdrop-filter:blur(28px) saturate(2);
+  -webkit-backdrop-filter:blur(28px) saturate(2);
+  border:1.5px solid var(--glass-border);
+  border-radius:28px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.22),0 1px 0 rgba(255,255,255,0.9) inset;
+  padding:24px;
+  opacity:0;pointer-events:none;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+}
+#info-popup.show{
+  opacity:1;pointer-events:all;
+  transform:translate(-50%,-50%) scale(1);
+}
+#info-popup .ip-close{
+  position:absolute;top:16px;right:16px;
+  width:30px;height:30px;border-radius:10px;
+  background:rgba(0,0,0,0.07);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--muted);transition:background .15s;
+}
+#info-popup .ip-close:hover{background:rgba(0,0,0,0.12)}
+.ip-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:10px;
+  font-weight:800;font-size:.8rem;color:#fff;
+  margin-bottom:14px;
+}
+.ip-name{font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:4px}
+.ip-desc{font-size:.75rem;color:var(--muted);margin-bottom:18px;line-height:1.5}
+.ip-divider{height:1px;background:rgba(0,0,0,0.07);margin-bottom:14px}
+.ip-stops-title{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:10px}
+.ip-stop-list{display:flex;flex-direction:column;gap:0}
+.ip-stop{display:flex;align-items:flex-start;gap:10px}
+.ip-stop-line{display:flex;flex-direction:column;align-items:center;padding-top:4px}
+.ip-dot{width:9px;height:9px;border-radius:50%;background:var(--rc);flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--rc)}
+.ip-bar{width:2px;min-height:14px;background:linear-gradient(var(--rc),rgba(0,0,0,0.07));flex:1}
+.ip-stop:last-child .ip-bar{display:none}
+.ip-stop-name{font-size:.73rem;color:var(--text);padding:2px 0 14px;font-weight:500;line-height:1.3}
+.ip-stop-name.term{font-weight:700;color:var(--text)}
+.ip-actions{display:flex;gap:8px;margin-top:16px}
+.ip-btn{
+  flex:1;padding:10px;border-radius:14px;border:1.5px solid rgba(0,0,0,0.08);
+  background:rgba(0,0,0,0.04);cursor:pointer;
+  font-family:var(--font);font-size:.72rem;font-weight:600;color:var(--text);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .18s;
+}
+.ip-btn:hover{background:rgba(0,0,0,0.08)}
+.ip-btn.primary{background:var(--rc);border-color:var(--rc);color:#fff;box-shadow:0 4px 14px color-mix(in srgb,var(--rc) 40%,transparent)}
+.ip-btn.primary:hover{filter:brightness(1.08)}
+
+/* ═══ OVERLAY backdrop ═══ */
+#overlay{
+  position:fixed;inset:0;z-index:1900;
+  background:rgba(0,0,0,0);
+  pointer-events:none;
+  transition:background .3s;
+}
+#overlay.show{background:rgba(0,0,0,0.25);pointer-events:all}
+
+/* ═══ FILTER PILLS (above cards) ═══ */
+#filter-pills{
+  display:flex;gap:8px;padding:0 20px 10px;
+  overflow-x:auto;scrollbar-width:none;
+  pointer-events:all;
+}
+#filter-pills::-webkit-scrollbar{display:none}
+.pill{
+  flex-shrink:0;
+  padding:6px 14px;border-radius:20px;
+  background:var(--glass2);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1.5px solid var(--glass-border);
+  box-shadow:0 3px 12px var(--shadow);
+  font-family:var(--font);font-size:.68rem;font-weight:600;
+  color:var(--muted);cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.pill:hover{background:rgba(255,255,255,0.95);color:var(--text)}
+.pill.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(30,184,154,0.4)}
+
+/* ═══ TOAST ═══ */
+#toast{
+  position:fixed;top:156px;left:50%;transform:translateX(-50%) translateY(-10px);
+  z-index:3000;
+  background:var(--text);color:#fff;
+  padding:8px 18px;border-radius:12px;
+  font-size:.72rem;font-weight:500;
+  opacity:0;pointer-events:none;
+  transition:all .3s;white-space:nowrap;
+  box-shadow:0 6px 20px rgba(0,0,0,0.2);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Leaflet overrides */
+.leaflet-popup-content-wrapper{
+  background:rgba(255,255,255,0.95)!important;
+  border:none!important;border-radius:16px!important;
+  box-shadow:0 8px 32px rgba(0,0,0,0.15)!important;
+  color:var(--text)!important;
+  backdrop-filter:blur(12px);
+}
+.leaflet-popup-tip{background:rgba(255,255,255,0.95)!important}
+.leaflet-popup-content{margin:12px 14px!important;font-family:var(--font)!important}
+.pop-num{display:inline-block;padding:2px 9px;border-radius:7px;font-weight:800;font-size:.7rem;color:#fff;margin-bottom:5px}
+.pop-stop{font-size:.78rem;font-weight:700;color:var(--text)}
+.pop-line{font-size:.65rem;color:var(--muted);margin-top:2px}
+.leaflet-control-zoom{border:none!important}
+.leaflet-control-zoom a{
+  background:var(--glass2)!important;
+  backdrop-filter:blur(12px)!important;
+  border:1.5px solid var(--glass-border)!important;
+  color:var(--text)!important;
+  box-shadow:0 4px 14px var(--shadow)!important;
+  border-radius:12px!important;
+  font-size:16px!important;width:34px!important;height:34px!important;
+  line-height:32px!important;margin-bottom:4px!important;
+}
+
+/* Animations */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.rcard{animation:fadeInUp .4s ease both}
+.rcard:nth-child(1){animation-delay:.05s}
+.rcard:nth-child(2){animation-delay:.1s}
+.rcard:nth-child(3){animation-delay:.15s}
+.rcard:nth-child(4){animation-delay:.2s}
+.rcard:nth-child(5){animation-delay:.25s}
+.rcard:nth-child(6){animation-delay:.3s}
+.rcard:nth-child(7){animation-delay:.35s}
+.rcard:nth-child(8){animation-delay:.4s}
+
+/* Pulse for active stop markers */
+@keyframes ripple{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.5);opacity:0}}
+.marker-pulse::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:2px solid var(--rc);animation:ripple 1.5s ease-out infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="topbar-icon">🚌</div>
+  <div>
+    <div class="topbar-title">Tuxtla<span>Rutas</span></div>
+    <div class="topbar-sub">Colectivos Urbanos · Chiapas</div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-stat">
+    <div class="topbar-stat-n" id="stat-active">0</div>
+    <div class="topbar-stat-l">Activas</div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-stat">
+    <div class="topbar-stat-n">8</div>
+    <div class="topbar-stat-l">Rutas</div>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div id="searchbar">
+  <div class="search-inner">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input id="search-input" type="text" placeholder="Buscar ruta o parada…"/>
+    <button class="search-clear" id="search-clear">✕</button>
+  </div>
+</div>
+
+<!-- BOTTOM PANEL -->
+<div id="panel">
+  <!-- Filter pills -->
+  <div id="filter-pills">
+    <button class="pill active" data-zone="all">Todas las rutas</button>
+    <button class="pill" data-zone="norte">Norte</button>
+    <button class="pill" data-zone="centro">Centro</button>
+    <button class="pill" data-zone="sur">Sur</button>
+    <button class="pill" data-zone="oriente">Oriente</button>
+  </div>
+
+  <!-- Route cards -->
+  <div id="cards-strip"></div>
+
+  <!-- Bottom Nav -->
+  <div id="bottomnav">
+    <div class="nav-items">
+      <button class="nav-item active" id="nav-home">
+        <span class="nav-emoji">🏠</span>
+        <span class="nav-label">Inicio</span>
+      </button>
+      <button class="nav-item" id="nav-inbox">
+        <span class="nav-emoji">📋</span>
+        <span class="nav-label">Rutas</span>
+      </button>
+    </div>
+    <button class="nav-add" id="nav-add-btn" title="Mostrar todas">＋</button>
+    <div class="nav-items">
+      <button class="nav-item" id="nav-bm">
+        <span class="nav-emoji">🔖</span>
+        <span class="nav-label">Guardadas</span>
+      </button>
+      <button class="nav-item" id="nav-dash">
+        <span class="nav-emoji">⊞</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKDROP -->
+<div id="overlay"></div>
+
+<!-- INFO POPUP -->
+<div id="info-popup">
+  <button class="ip-close" id="ip-close">✕</button>
+  <div id="ip-badge" class="ip-badge"></div>
+  <div id="ip-name" class="ip-name"></div>
+  <div id="ip-desc" class="ip-desc"></div>
+  <div class="ip-divider"></div>
+  <div class="ip-stops-title">Paradas</div>
+  <div id="ip-stops" class="ip-stop-list"></div>
+  <div class="ip-actions">
+    <button class="ip-btn" id="ip-btn-toggle">
+      <span id="ip-toggle-icon">👁</span>
+      <span id="ip-toggle-lbl">Ver en mapa</span>
+    </button>
+    <button class="ip-btn primary" id="ip-btn-zoom">
+      <span>🎯</span> Enfocar
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  RUTAS — coordenadas siguiendo calles reales de Tuxtla Gutiérrez
+//  (Blvd Belisario Domínguez, Av. Central, Lib. Norte/Sur, etc.)
+// ════════════════════════════════════════════════
+const ROUTES = [
+  {
+    id:'R1',num:'1',name:'Ruta 1',color:'#f43f5e',zone:'norte',
+    desc:'Albania Alta → Av. Central → Patria Nueva',
+    via:'Blvd. Belisario Domínguez · Av. Central Ote.',
+    stops:[
+      {name:'Albania Alta (Col. Moctezuma)',lat:16.7638,lng:-93.1847,terminal:true},
+      {name:'Blvd. B. Domínguez & 30ª Pte.',lat:16.7591,lng:-93.1722},
+      {name:'Blvd. B. Domínguez & 15ª Pte.',lat:16.7561,lng:-93.1530},
+      {name:'Central Camionera',lat:16.7553,lng:-93.1303},
+      {name:'Calle Central & Av. Central',lat:16.7520,lng:-93.1145},
+      {name:'Catedral San Marcos',lat:16.7513,lng:-93.1120},
+      {name:'Parque de la Marimba',lat:16.7499,lng:-93.1042},
+      {name:'Av. Central & 12ª Ote.',lat:16.7494,lng:-93.0940},
+      {name:'Patria Nueva',lat:16.7478,lng:-93.0812,terminal:true},
+    ],
+    path:[
+      [16.7638,-93.1847],[16.7621,-93.1810],[16.7600,-93.1780],[16.7591,-93.1722],
+      [16.7580,-93.1660],[16.7570,-93.1600],[16.7561,-93.1530],[16.7556,-93.1470],
+      [16.7553,-93.1400],[16.7553,-93.1303],[16.7535,-93.1280],[16.7525,-93.1210],
+      [16.7520,-93.1145],[16.7513,-93.1120],[16.7505,-93.1080],[16.7499,-93.1042],
+      [16.7496,-93.0990],[16.7494,-93.0940],[16.7486,-93.0875],[16.7478,-93.0812],
+    ]
+  },
+  {
+    id:'R2',num:'2',name:'Ruta 2',color:'#f97316',zone:'norte',
+    desc:'Monte Cristo → Central → Col. Popular',
+    via:'Blvd. B. Domínguez · 5ª Norte · Lib. Sur',
+    stops:[
+      {name:'Monte Cristo (Col. Albania Alta)',lat:16.7648,lng:-93.1875,terminal:true},
+      {name:'Blvd. B. Domínguez & Fovissste',lat:16.7592,lng:-93.1610},
+      {name:'Blvd. B. Domínguez & Plaza Cristal',lat:16.7568,lng:-93.1440},
+      {name:'Central Camionera',lat:16.7554,lng:-93.1305},
+      {name:'Mercado Juan Sabines',lat:16.7541,lng:-93.1195},
+      {name:'Calle Central (Centro)',lat:16.7520,lng:-93.1148},
+      {name:'Libramiento Sur & Calle Central',lat:16.7382,lng:-93.1068},
+      {name:'Col. Popular',lat:16.7374,lng:-93.0845,terminal:true},
+    ],
+    path:[
+      [16.7648,-93.1875],[16.7630,-93.1840],[16.7610,-93.1760],[16.7592,-93.1610],
+      [16.7580,-93.1540],[16.7568,-93.1440],[16.7560,-93.1370],[16.7554,-93.1305],
+      [16.7548,-93.1250],[16.7541,-93.1195],[16.7530,-93.1170],[16.7520,-93.1148],
+      [16.7500,-93.1130],[16.7470,-93.1110],[16.7440,-93.1090],[16.7382,-93.1068],
+      [16.7378,-93.1000],[16.7374,-93.0920],[16.7374,-93.0845],
+    ]
+  },
+  {
+    id:'R8',num:'8',name:'Ruta 8',color:'#eab308',zone:'norte',
+    desc:'Centro → Fovissste → UNICACH',
+    via:'Blvd. Belisario Domínguez Pte.',
+    stops:[
+      {name:'Calle Central (Centro)',lat:16.7520,lng:-93.1150,terminal:true},
+      {name:'Hospital ISSSTE',lat:16.7548,lng:-93.1372},
+      {name:'Blvd. B. Domínguez & Fovissste',lat:16.7562,lng:-93.1500},
+      {name:'Col. Paraíso Fovissste',lat:16.7578,lng:-93.1598},
+      {name:'Prof. Daniel Robles Sasso',lat:16.7600,lng:-93.1700},
+      {name:'UNICACH Campus I',lat:16.7645,lng:-93.1832,terminal:true},
+    ],
+    path:[
+      [16.7520,-93.1150],[16.7530,-93.1220],[16.7540,-93.1300],[16.7548,-93.1372],
+      [16.7554,-93.1440],[16.7562,-93.1500],[16.7570,-93.1550],[16.7578,-93.1598],
+      [16.7590,-93.1648],[16.7600,-93.1700],[16.7620,-93.1758],[16.7645,-93.1832],
+    ]
+  },
+  {
+    id:'R11',num:'11',name:'Ruta 11',color:'#22c55e',zone:'oriente',
+    desc:'Centro → Morelos → Fco. I. Madero',
+    via:'Av. Central Oriente',
+    stops:[
+      {name:'Parque de la Marimba',lat:16.7499,lng:-93.1042,terminal:true},
+      {name:'Av. Central & 4ª Ote.',lat:16.7499,lng:-93.0980},
+      {name:'Av. Central & 8ª Ote.',lat:16.7499,lng:-93.0900},
+      {name:'Col. Morelos',lat:16.7510,lng:-93.0845},
+      {name:'Jardines del Grijalva',lat:16.7508,lng:-93.0730},
+      {name:'Col. Francisco I. Madero',lat:16.7492,lng:-93.0572,terminal:true},
+    ],
+    path:[
+      [16.7499,-93.1042],[16.7499,-93.1000],[16.7499,-93.0980],
+      [16.7499,-93.0940],[16.7499,-93.0900],[16.7505,-93.0870],
+      [16.7510,-93.0845],[16.7510,-93.0800],[16.7509,-93.0760],
+      [16.7508,-93.0730],[16.7500,-93.0680],[16.7495,-93.0630],[16.7492,-93.0572],
+    ]
+  },
+  {
+    id:'R34',num:'34',name:'Ruta 34',color:'#06b6d4',zone:'sur',
+    desc:'Centro → Xamaipak → Ampliación Terán',
+    via:'9ª Sur · Libramiento Sur',
+    stops:[
+      {name:'Calle Central (1ª Calle Sur)',lat:16.7510,lng:-93.1132,terminal:true},
+      {name:'9ª Sur & Calle Central',lat:16.7450,lng:-93.1132},
+      {name:'9ª Sur & 4ª Ote.',lat:16.7450,lng:-93.1000},
+      {name:'Col. Xamaipak',lat:16.7428,lng:-93.1200},
+      {name:'Col. Buenos Aires',lat:16.7380,lng:-93.1310},
+      {name:'Cobach 01',lat:16.7348,lng:-93.1420},
+      {name:'Ampliación Terán',lat:16.7310,lng:-93.1528,terminal:true},
+    ],
+    path:[
+      [16.7510,-93.1132],[16.7490,-93.1132],[16.7470,-93.1132],[16.7450,-93.1132],
+      [16.7450,-93.1060],[16.7450,-93.1000],[16.7440,-93.1070],[16.7428,-93.1200],
+      [16.7410,-93.1255],[16.7395,-93.1280],[16.7380,-93.1310],[16.7365,-93.1365],
+      [16.7348,-93.1420],[16.7330,-93.1472],[16.7310,-93.1528],
+    ]
+  },
+  {
+    id:'R41',num:'41',name:'Ruta 41',color:'#a855f7',zone:'oriente',
+    desc:'Centro → Col. Retiro → Frac. El Roble',
+    via:'5ª Norte · Paseo Usumacinta',
+    stops:[
+      {name:'Catedral (Calle Central)',lat:16.7513,lng:-93.1118,terminal:true},
+      {name:'Mercado D. Chanona',lat:16.7535,lng:-93.1052},
+      {name:'5ª Norte & 8ª Ote.',lat:16.7558,lng:-93.0938},
+      {name:'Col. El Retiro',lat:16.7572,lng:-93.0870},
+      {name:'Paseo Usumacinta',lat:16.7598,lng:-93.0760},
+      {name:'Frac. El Roble',lat:16.7622,lng:-93.0650,terminal:true},
+    ],
+    path:[
+      [16.7513,-93.1118],[16.7520,-93.1080],[16.7528,-93.1010],[16.7535,-93.1052],
+      [16.7542,-93.0990],[16.7550,-93.0960],[16.7558,-93.0938],[16.7565,-93.0900],
+      [16.7572,-93.0870],[16.7582,-93.0820],[16.7591,-93.0790],[16.7598,-93.0760],
+      [16.7610,-93.0710],[16.7622,-93.0650],
+    ]
+  },
+  {
+    id:'R43',num:'43',name:'Ruta 43',color:'#ec4899',zone:'sur',
+    desc:'Juan Crispín → Industrial → Abastos',
+    via:'Carr. Panamericana · Libramiento Sur',
+    stops:[
+      {name:'Juan Crispín (Carr. Panamericana)',lat:16.7310,lng:-93.1600,terminal:true},
+      {name:'Libramiento Sur & Juan Crispín',lat:16.7345,lng:-93.1515},
+      {name:'Libramiento Sur Pte.',lat:16.7362,lng:-93.1370},
+      {name:'Zona Industrial',lat:16.7368,lng:-93.1110},
+      {name:'La Misión',lat:16.7445,lng:-93.0962},
+      {name:'Central de Abastos',lat:16.7481,lng:-93.0802,terminal:true},
+    ],
+    path:[
+      [16.7310,-93.1600],[16.7322,-93.1558],[16.7345,-93.1515],
+      [16.7355,-93.1440],[16.7362,-93.1370],[16.7365,-93.1290],[16.7368,-93.1200],
+      [16.7368,-93.1110],[16.7390,-93.1060],[16.7415,-93.1010],[16.7445,-93.0962],
+      [16.7462,-93.0882],[16.7481,-93.0802],
+    ]
+  },
+  {
+    id:'R64',num:'64',name:'Ruta 64',color:'#14b8a6',zone:'centro',
+    desc:'Marimba → Vista Hermosa → Fco. I. Madero',
+    via:'Blvd. Ángel Albino Corzo',
+    stops:[
+      {name:'Parque de la Marimba',lat:16.7499,lng:-93.1042,terminal:true},
+      {name:'Blvd. Á. Albino Corzo & 9ª Pte.',lat:16.7462,lng:-93.0980},
+      {name:'Col. Vista Hermosa',lat:16.7452,lng:-93.0900},
+      {name:'Blvd. Á. Albino Corzo & Pensil',lat:16.7448,lng:-93.0808},
+      {name:'Samuel León Brindis',lat:16.7449,lng:-93.0720},
+      {name:'Col. Francisco I. Madero',lat:16.7492,lng:-93.0572,terminal:true},
+    ],
+    path:[
+      [16.7499,-93.1042],[16.7485,-93.1020],[16.7472,-93.1000],[16.7462,-93.0980],
+      [16.7458,-93.0940],[16.7452,-93.0900],[16.7450,-93.0855],[16.7448,-93.0808],
+      [16.7448,-93.0765],[16.7449,-93.0720],[16.7465,-93.0660],[16.7480,-93.0610],[16.7492,-93.0572],
+    ]
+  },
+];
+
+// ════════════════════════════════════════════════
+//  MAP — tiles de alta calidad (CartoDB Voyager)
+// ════════════════════════════════════════════════
+const map = L.map('map',{
+  center:[16.7510,-93.1150],zoom:13,
+  zoomControl:false,
+  attributionControl:false,
+});
+L.control.zoom({position:'topright'}).addTo(map);
+L.control.attribution({position:'bottomright',prefix:false}).addTo(map);
+
+// CartoDB Voyager — colores claros, detalles de calles muy definidos
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains:'abcd',maxZoom:20,
+}).addTo(map);
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+const layers={};
+let activeCount=0;
+let allVisible=false;
+let openRouteId=null;
+
+ROUTES.forEach(r=>{
+  const poly=L.polyline(r.path,{
+    color:r.color,weight:6,opacity:.92,
+    lineCap:'round',lineJoin:'round',
+  });
+  // subtle outline
+  const polyOutline=L.polyline(r.path,{
+    color:'#fff',weight:10,opacity:.35,
+    lineCap:'round',lineJoin:'round',
+  });
+
+  const markers=r.stops.map((s,i)=>{
+    const isEnd=i===0||i===r.stops.length-1;
+    const sz=isEnd?18:11;
+    const icon=L.divIcon({
+      className:'',
+      html:`<div style="
+        position:relative;
+        width:${sz}px;height:${sz}px;
+        background:${r.color};
+        border:${isEnd?3:2}px solid #fff;
+        border-radius:50%;
+        box-shadow:0 2px ${isEnd?10:5}px ${r.color}88,0 1px 3px rgba(0,0,0,.2);
+      "></div>`,
+      iconAnchor:[sz/2,sz/2],iconSize:[sz,sz],
+    });
+    const m=L.marker([s.lat,s.lng],{icon});
+    m.bindPopup(`
+      <span class="pop-num" style="background:${r.color}">Ruta ${r.num}</span>
+      <div class="pop-stop">${s.terminal?'🏁 ':'🚏 '}${s.name}</div>
+      <div class="pop-line">${r.name} · ${r.via}</div>
+    `,{maxWidth:240,closeButton:false});
+    return m;
+  });
+
+  layers[r.id]={poly,polyOutline,markers,visible:false};
+});
+
+// ════════════════════════════════════════════════
+//  BUILD ROUTE CARDS
+// ════════════════════════════════════════════════
+const strip=document.getElementById('cards-strip');
+ROUTES.forEach(r=>{
+  const c=document.createElement('div');
+  c.className='rcard';c.id=`card-${r.id}`;
+  c.dataset.zone=r.zone;
+  c.dataset.search=`${r.name} ${r.desc} ${r.stops.map(s=>s.name).join(' ')}`.toLowerCase();
+  c.style.setProperty('--rc',r.color);
+  c.innerHTML=`
+    <div class="rcard-top">
+      <div class="rcard-num">${r.num}</div>
+      <button class="rcard-eye" title="Mostrar/ocultar">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="rcard-name">${r.name}</div>
+    <div class="rcard-desc">${r.desc}</div>
+    <div class="rcard-stops">
+      <span class="dot"></span> ${r.stops.length} paradas
+    </div>
+  `;
+  c.addEventListener('click',e=>{
+    if(e.target.closest('.rcard-eye')){toggleRoute(r.id);return}
+    openPopup(r.id);
+  });
+  strip.appendChild(c);
+});
+
+// ════════════════════════════════════════════════
+//  TOGGLE ROUTE ON MAP
+// ════════════════════════════════════════════════
+function toggleRoute(id,fitBounds=true){
+  const s=layers[id],r=ROUTES.find(x=>x.id===id);
+  const card=document.getElementById(`card-${id}`);
+  if(s.visible){
+    map.removeLayer(s.polyOutline);
+    map.removeLayer(s.poly);
+    s.markers.forEach(m=>map.removeLayer(m));
+    s.visible=false;activeCount--;
+    card.classList.remove('active');
+    showToast(`Ruta ${r.num} ocultada`);
+  } else {
+    s.polyOutline.addTo(map);
+    s.poly.addTo(map);
+    s.markers.forEach(m=>m.addTo(map));
+    s.visible=true;activeCount++;
+    card.classList.add('active');
+    if(fitBounds) map.fitBounds(r.path,{padding:[80,80],maxZoom:15});
+    showToast(`Ruta ${r.num} activada ✓`);
+  }
+  document.getElementById('stat-active').textContent=activeCount;
+  // update popup if open
+  if(openRouteId===id) updatePopupButtons(r);
+}
+
+// ════════════════════════════════════════════════
+//  INFO POPUP
+// ════════════════════════════════════════════════
+function openPopup(id){
+  const r=ROUTES.find(x=>x.id===id);
+  openRouteId=id;
+  document.getElementById('ip-badge').textContent=`Ruta ${r.num}`;
+  document.getElementById('ip-badge').style.background=r.color;
+  document.getElementById('ip-badge').style.setProperty('--rc',r.color);
+  document.getElementById('ip-name').textContent=r.name;
+  document.getElementById('ip-desc').textContent=`${r.desc}\nVía: ${r.via}`;
+  document.getElementById('info-popup').style.setProperty('--rc',r.color);
+
+  const stopsEl=document.getElementById('ip-stops');
+  stopsEl.innerHTML=r.stops.map(s=>`
+    <div class="ip-stop">
+      <div class="ip-stop-line">
+        <div class="ip-dot"></div>
+        <div class="ip-bar"></div>
+      </div>
+      <div class="ip-stop-name ${s.terminal?'term':''}">${s.name}</div>
+    </div>
+  `).join('');
+
+  updatePopupButtons(r);
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('info-popup').classList.add('show');
+
+  // focus card
+  const card=document.getElementById(`card-${id}`);
+  card.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function updatePopupButtons(r){
+  const vis=layers[r.id].visible;
+  document.getElementById('ip-toggle-icon').textContent=vis?'🙈':'👁';
+  document.getElementById('ip-toggle-lbl').textContent=vis?'Ocultar':'Ver en mapa';
+}
+
+document.getElementById('ip-close').addEventListener('click',closePopup);
+document.getElementById('overlay').addEventListener('click',closePopup);
+
+document.getElementById('ip-btn-toggle').addEventListener('click',()=>{
+  if(openRouteId) toggleRoute(openRouteId);
+});
+document.getElementById('ip-btn-zoom').addEventListener('click',()=>{
+  if(!openRouteId) return;
+  const r=ROUTES.find(x=>x.id===openRouteId);
+  if(!layers[openRouteId].visible) toggleRoute(openRouteId,false);
+  map.fitBounds(r.path,{padding:[80,80],maxZoom:15});
+  closePopup();
+});
+
+function closePopup(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('info-popup').classList.remove('show');
+  openRouteId=null;
+}
+
+// ════════════════════════════════════════════════
+//  TOGGLE ALL  (nav + button)
+// ════════════════════════════════════════════════
+let btnAllState=false;
+document.getElementById('nav-add-btn').addEventListener('click',()=>{
+  btnAllState=!btnAllState;
+  activeCount=0;
+  ROUTES.forEach(r=>{
+    const s=layers[r.id],card=document.getElementById(`card-${r.id}`);
+    if(btnAllState){
+      if(!s.visible){s.polyOutline.addTo(map);s.poly.addTo(map);s.markers.forEach(m=>m.addTo(map));s.visible=true}
+      card.classList.add('active');activeCount++;
+    } else {
+      if(s.visible){map.removeLayer(s.polyOutline);map.removeLayer(s.poly);s.markers.forEach(m=>map.removeLayer(m));s.visible=false}
+      card.classList.remove('active');
+    }
+  });
+  document.getElementById('stat-active').textContent=activeCount;
+  if(btnAllState){
+    const all=ROUTES.flatMap(r=>r.path);
+    map.fitBounds(all,{padding:[60,60]});
+    showToast('Todas las rutas activas');
+  } else {
+    showToast('Rutas ocultadas');
+  }
+  const btn=document.getElementById('nav-add-btn');
+  btn.style.background=btnAllState
+    ?'linear-gradient(135deg,#f43f5e,#ec4899)'
+    :'linear-gradient(135deg,var(--accent),var(--accent2))';
+  btn.textContent=btnAllState?'✕':'＋';
+});
+
+// ════════════════════════════════════════════════
+//  SEARCH
+// ════════════════════════════════════════════════
+const si=document.getElementById('search-input');
+const sc=document.getElementById('search-clear');
+si.addEventListener('input',e=>{
+  const q=e.target.value.toLowerCase().trim();
+  sc.classList.toggle('show',q.length>0);
+  document.querySelectorAll('.rcard').forEach(c=>{
+    c.classList.toggle('hidden',q&&!c.dataset.search.includes(q));
+  });
+});
+sc.addEventListener('click',()=>{
+  si.value='';sc.classList.remove('show');
+  document.querySelectorAll('.rcard').forEach(c=>c.classList.remove('hidden'));
+  si.focus();
+});
+
+// ════════════════════════════════════════════════
+//  FILTER PILLS
+// ════════════════════════════════════════════════
+document.getElementById('filter-pills').addEventListener('click',e=>{
+  const pill=e.target.closest('.pill');
+  if(!pill)return;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  pill.classList.add('active');
+  const z=pill.dataset.zone;
+  document.querySelectorAll('.rcard').forEach(c=>{
+    c.classList.toggle('hidden',z!=='all'&&c.dataset.zone!==z);
+  });
+});
+
+// ════════════════════════════════════════════════
+//  NAV TABS
+// ════════════════════════════════════════════════
+['nav-home','nav-inbox','nav-bm','nav-dash'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  });
+});
+
+// ════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+</script>
+</body>
+</html>
