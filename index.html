@@ -3,15 +3,20 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>TuxtlaRutas</title>
+<title>TuxtlaRutas - Colectivos Urbanos</title>
+<meta name="description" content="Encuentra rutas de colectivos urbanos en Tuxtla Gutierrez, Chiapas. Busca paradas, planifica tu viaje y sube a bordo."/>
+<meta name="theme-color" content="#0d1f2d"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="TuxtlaRutas"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-/* ═══════════════════════════════════════════
-   VARIABLES & RESET
-═══════════════════════════════════════════ */
+/* ============================================
+   CSS VARIABLES & RESET
+============================================ */
 :root{
   --bg:#e4eaf0;
   --g2:rgba(255,255,255,0.90);
@@ -26,22 +31,47 @@
   --danger:#f43f5e;
   --font:'Outfit',sans-serif;
   --r:20px;
+  --card-bg:rgba(255,255,255,0.90);
+  --card-border:rgba(255,255,255,0.95);
+  --divider:rgba(0,0,0,0.07);
+  --hover-bg:rgba(0,0,0,0.05);
+  --input-bg:rgba(0,0,0,0.05);
+  --tile-url:url('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
 }
+
+/* Dark mode */
+html.dark{
+  --bg:#0f1720;
+  --g2:rgba(22,30,42,0.92);
+  --g3:rgba(18,24,34,0.98);
+  --gb:rgba(40,52,68,0.6);
+  --sh:rgba(0,0,0,0.25);
+  --sh2:rgba(0,0,0,0.4);
+  --text:#e1e8f0;
+  --sub:#7a8c9e;
+  --card-bg:rgba(22,30,42,0.92);
+  --card-border:rgba(40,52,68,0.6);
+  --divider:rgba(255,255,255,0.08);
+  --hover-bg:rgba(255,255,255,0.06);
+  --input-bg:rgba(255,255,255,0.07);
+}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--font);color:var(--text)}
-button{font-family:var(--font);cursor:pointer;border:none}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--font);color:var(--text);transition:background .3s,color .3s}
+button{font-family:var(--font);cursor:pointer;border:none;background:none}
 input{font-family:var(--font)}
 
-/* ═══════════════════════════════════════════
-   SCREENS
-═══════════════════════════════════════════ */
+/* ============================================
+   SCREEN TRANSITIONS
+============================================ */
 .screen{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;
-  background:var(--bg);overflow:hidden}
-.screen.active{display:flex}
+  background:var(--bg);overflow:hidden;opacity:0;transition:opacity .35s ease}
+.screen.active{display:flex;opacity:1}
+.screen.fade-out{opacity:0}
 
-/* ═══════════════════════════════════════════
-   ── SPLASH SCREEN ──
-═══════════════════════════════════════════ */
+/* ============================================
+   SPLASH SCREEN
+============================================ */
 #s-splash{
   align-items:center;justify-content:center;
   background:linear-gradient(160deg,#0d1f2d 0%,#0a3d32 60%,#0c2a3a 100%);
@@ -56,11 +86,12 @@ input{font-family:var(--font)}
   position:relative;z-index:2;
   width:88px;height:88px;border-radius:26px;
   background:linear-gradient(135deg,var(--accent),var(--acb));
-  display:flex;align-items:center;justify-content:center;font-size:42px;
+  display:flex;align-items:center;justify-content:center;
   box-shadow:0 12px 40px rgba(29,184,150,0.5),0 0 0 1px rgba(255,255,255,0.1);
   animation:splash-in .8s cubic-bezier(.34,1.56,.64,1) both;
   margin-bottom:24px;
 }
+.splash-logo svg{color:#fff}
 .splash-title{
   position:relative;z-index:2;
   font-size:2.4rem;font-weight:800;color:#fff;letter-spacing:-.03em;
@@ -73,28 +104,37 @@ input{font-family:var(--font)}
   font-size:.82rem;color:rgba(255,255,255,0.5);font-weight:400;
   animation:splash-in .8s .25s cubic-bezier(.34,1.56,.64,1) both;
 }
+.splash-progress{
+  position:relative;z-index:2;margin-top:32px;
+  width:120px;height:3px;background:rgba(255,255,255,0.12);border-radius:2px;
+  overflow:hidden;animation:splash-in .8s .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+.splash-progress-bar{
+  height:100%;background:linear-gradient(90deg,var(--accent),var(--acb));
+  border-radius:2px;animation:splash-load 1.8s ease-in-out forwards;
+}
+@keyframes splash-load{from{width:0}to{width:100%}}
 @keyframes splash-in{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 
-/* ═══════════════════════════════════════════
-   ── LOGIN / REGISTER SCREEN ──
-═══════════════════════════════════════════ */
+/* ============================================
+   LOGIN / REGISTER SCREEN
+============================================ */
 #s-auth{
   align-items:center;justify-content:flex-end;
   background:linear-gradient(160deg,#0d1f2d 0%,#0a3d32 60%,#0c2a3a 100%);
 }
-.auth-bg-bus{
-  position:absolute;top:10%;right:-30px;font-size:120px;opacity:0.07;
-  transform:rotate(-15deg);pointer-events:none;
-  animation:float-bus 6s ease-in-out infinite;
+.auth-bg-deco{
+  position:absolute;top:8%;right:-40px;opacity:0.05;pointer-events:none;
+  animation:float-deco 6s ease-in-out infinite;
 }
-@keyframes float-bus{0%,100%{transform:rotate(-15deg) translateY(0)}50%{transform:rotate(-15deg) translateY(-20px)}}
+@keyframes float-deco{0%,100%{transform:rotate(-15deg) translateY(0)}50%{transform:rotate(-15deg) translateY(-20px)}}
 .auth-header{
   position:absolute;top:0;left:0;right:0;
   padding:60px 32px 0;text-align:center;
 }
-.auth-header-logo{font-size:2rem;font-weight:800;color:#fff;letter-spacing:-.02em}
+.auth-header-logo{font-size:2rem;font-weight:800;color:#fff;letter-spacing:-.02em;display:flex;align-items:center;justify-content:center;gap:10px}
 .auth-header-logo span{color:var(--accent)}
-.auth-header-sub{font-size:.78rem;color:rgba(255,255,255,0.45);margin-top:4px}
+.auth-header-sub{font-size:.78rem;color:rgba(255,255,255,0.45);margin-top:6px}
 
 .auth-sheet{
   width:100%;
@@ -105,25 +145,25 @@ input{font-family:var(--font)}
   position:relative;z-index:2;
 }
 .auth-tabs{
-  display:flex;background:rgba(0,0,0,0.06);border-radius:14px;padding:4px;
+  display:flex;background:var(--input-bg);border-radius:14px;padding:4px;
   margin-bottom:28px;
 }
 .auth-tab{
   flex:1;padding:10px;border-radius:10px;font-size:.82rem;font-weight:600;
-  background:none;color:var(--sub);transition:all .2s;
+  background:none;color:var(--sub);transition:all .25s;
 }
-.auth-tab.active{background:#fff;color:var(--text);box-shadow:0 2px 10px var(--sh2)}
+.auth-tab.active{background:var(--g3);color:var(--text);box-shadow:0 2px 10px var(--sh2)}
 
 .field{margin-bottom:16px}
 .field label{display:block;font-size:.72rem;font-weight:600;color:var(--sub);
   text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .field-wrap{
   display:flex;align-items:center;gap:10px;
-  background:rgba(0,0,0,0.05);border:1.5px solid transparent;
+  background:var(--input-bg);border:1.5px solid transparent;
   border-radius:14px;padding:13px 15px;
-  transition:border-color .2s,background .2s;
+  transition:border-color .25s,background .25s,box-shadow .25s;
 }
-.field-wrap:focus-within{background:#fff;border-color:var(--accent);
+.field-wrap:focus-within{background:var(--g3);border-color:var(--accent);
   box-shadow:0 0 0 3px rgba(29,184,150,0.12)}
 .field-wrap svg{color:var(--sub);flex-shrink:0}
 .field-wrap input{
@@ -136,7 +176,8 @@ input{font-family:var(--font)}
   width:100%;padding:15px;border-radius:16px;font-size:.95rem;font-weight:700;
   background:linear-gradient(135deg,var(--accent),var(--acb));
   color:#fff;box-shadow:0 6px 24px rgba(29,184,150,0.4);
-  transition:all .2s;margin-top:8px;
+  transition:all .25s;margin-top:8px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
 }
 .auth-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(29,184,150,0.5)}
 .auth-btn:active{transform:translateY(0) scale(.98)}
@@ -145,25 +186,29 @@ input{font-family:var(--font)}
   display:flex;align-items:center;gap:12px;margin:20px 0;
   font-size:.72rem;color:var(--sub);font-weight:500;
 }
-.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:rgba(0,0,0,0.08)}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--divider)}
 
 .auth-guest{
   width:100%;padding:14px;border-radius:16px;font-size:.88rem;font-weight:600;
-  background:rgba(0,0,0,0.05);color:var(--sub);
-  border:1.5px solid rgba(0,0,0,0.08);transition:all .2s;
+  background:var(--hover-bg);color:var(--sub);
+  border:1.5px solid var(--divider);transition:all .25s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
 }
-.auth-guest:hover{background:rgba(0,0,0,0.08);color:var(--text)}
+.auth-guest:hover{background:var(--input-bg);color:var(--text)}
+.auth-guest svg{flex-shrink:0}
 
 .auth-error{
   background:rgba(244,63,94,0.1);border:1.5px solid rgba(244,63,94,0.3);
   border-radius:12px;padding:10px 14px;font-size:.75rem;color:var(--danger);
   font-weight:500;margin-bottom:14px;display:none;
+  animation:shake .4s ease;
 }
 .auth-error.show{display:block}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
-/* ═══════════════════════════════════════════
-   ── MAIN APP ──
-═══════════════════════════════════════════ */
+/* ============================================
+   MAIN APP
+============================================ */
 #s-app{background:transparent}
 
 /* MAP */
@@ -174,21 +219,23 @@ input{font-family:var(--font)}
   position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:500;
   background:var(--g2);backdrop-filter:blur(20px) saturate(1.8);
   -webkit-backdrop-filter:blur(20px) saturate(1.8);
-  border:1.5px solid var(--gb);border-radius:22px;
-  box-shadow:0 8px 32px var(--sh2),0 1px 0 rgba(255,255,255,0.8) inset;
+  border:1.5px solid var(--card-border);border-radius:22px;
+  box-shadow:0 8px 32px var(--sh2),0 1px 0 rgba(255,255,255,0.1) inset;
   padding:10px 16px;display:flex;align-items:center;gap:12px;
   min-width:300px;max-width:92vw;
+  transition:background .3s,border-color .3s;
 }
 .tb-icon{
   width:34px;height:34px;border-radius:11px;flex-shrink:0;
   background:linear-gradient(135deg,var(--accent),var(--acb));
-  display:flex;align-items:center;justify-content:center;font-size:17px;
+  display:flex;align-items:center;justify-content:center;
   box-shadow:0 3px 10px rgba(29,184,150,0.35);
 }
+.tb-icon svg{color:#fff}
 .tb-title{font-size:.92rem;font-weight:800;color:var(--text);letter-spacing:-.02em}
 .tb-title span{color:var(--accent)}
 .tb-sub{font-size:.58rem;color:var(--sub);margin-top:1px}
-.tb-div{width:1px;height:26px;background:rgba(0,0,0,0.08);flex-shrink:0}
+.tb-div{width:1px;height:26px;background:var(--divider);flex-shrink:0}
 .tb-stat{text-align:center;min-width:36px}
 .tb-n{font-size:1rem;font-weight:800;color:var(--accent);line-height:1}
 .tb-l{font-size:.52rem;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
@@ -198,9 +245,11 @@ input{font-family:var(--font)}
   display:flex;align-items:center;justify-content:center;
   font-size:.78rem;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;
   box-shadow:0 2px 8px rgba(29,184,150,0.35);
-  border:2px solid #fff;
+  border:2px solid var(--g3);
   margin-left:auto;
+  transition:transform .2s;
 }
+.tb-avatar:hover{transform:scale(1.08)}
 
 /* SEARCH */
 #searchbar{
@@ -210,22 +259,46 @@ input{font-family:var(--font)}
 .si{
   background:var(--g2);backdrop-filter:blur(20px) saturate(1.8);
   -webkit-backdrop-filter:blur(20px) saturate(1.8);
-  border:1.5px solid var(--gb);border-radius:16px;
+  border:1.5px solid var(--card-border);border-radius:16px;
   box-shadow:0 5px 20px var(--sh);
   display:flex;align-items:center;gap:8px;padding:10px 14px;
-  transition:box-shadow .2s,border-color .2s;
+  transition:box-shadow .25s,border-color .25s,background .3s;
 }
 .si:focus-within{border-color:var(--accent);box-shadow:0 5px 20px var(--sh),0 0 0 3px rgba(29,184,150,0.12)}
 .si svg{color:var(--sub);flex-shrink:0}
 .si input{background:none;border:none;outline:none;font-family:var(--font);font-size:.82rem;color:var(--text);width:100%;font-weight:500}
 .si input::placeholder{color:var(--sub);font-weight:400}
-#sc{background:rgba(0,0,0,0.07);border:none;border-radius:6px;width:20px;height:20px;
-  align-items:center;justify-content:center;font-size:10px;color:var(--sub);
-  flex-shrink:0;display:none;transition:background .15s}
+#sc{background:var(--hover-bg);border:none;border-radius:6px;width:20px;height:20px;
+  align-items:center;justify-content:center;
+  flex-shrink:0;display:none;transition:background .15s;color:var(--sub)}
 #sc.show{display:flex}
-#sc:hover{background:rgba(0,0,0,0.12)}
+#sc:hover{background:var(--input-bg)}
 
-/* GPS / RIDING BANNER */
+/* NO RESULTS */
+.no-results{
+  display:none;padding:20px;text-align:center;
+  font-size:.78rem;color:var(--sub);font-weight:500;
+  pointer-events:all;
+}
+.no-results.show{display:block}
+.no-results svg{margin:0 auto 8px;color:var(--sub);opacity:.5}
+
+/* GPS LOCATE BUTTON */
+#gps-locate{
+  position:fixed;bottom:310px;right:14px;z-index:500;
+  width:40px;height:40px;border-radius:14px;
+  background:var(--g2);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1.5px solid var(--card-border);
+  box-shadow:0 4px 16px var(--sh);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .25s;color:var(--sub);
+}
+#gps-locate:hover{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px rgba(29,184,150,0.4)}
+#gps-locate.active{background:var(--accent);color:#fff;border-color:var(--accent);animation:gps-pulse 2s ease-in-out infinite}
+@keyframes gps-pulse{0%,100%{box-shadow:0 4px 16px rgba(29,184,150,0.4)}50%{box-shadow:0 4px 16px rgba(29,184,150,0.4),0 0 0 8px rgba(29,184,150,0.1)}}
+
+/* GPS RIDING BANNER */
 #gps-banner{
   position:fixed;top:148px;left:50%;transform:translateX(-50%);z-index:500;
   background:linear-gradient(135deg,rgba(29,184,150,0.95),rgba(14,165,233,0.95));
@@ -234,18 +307,21 @@ input{font-family:var(--font)}
   box-shadow:0 6px 24px rgba(29,184,150,0.4);
   padding:10px 16px;display:none;align-items:center;gap:10px;
   min-width:280px;max-width:92vw;
+  animation:slideDown .3s ease;
 }
+@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 #gps-banner.show{display:flex}
-.gps-bus-anim{font-size:22px;animation:drive 1s linear infinite}
+.gps-bus-anim{animation:drive 1s linear infinite;display:flex;align-items:center}
+.gps-bus-anim svg{color:#fff}
 @keyframes drive{0%{transform:translateX(-3px)}50%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
 .gps-info{flex:1}
 .gps-route-lbl{font-size:.65rem;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:.06em}
 .gps-route-name{font-size:.88rem;font-weight:700;color:#fff}
-.gps-speed{font-size:.68rem;color:rgba(255,255,255,0.8);margin-top:1px}
+.gps-speed{font-size:.68rem;color:rgba(255,255,255,0.8);margin-top:1px;display:flex;align-items:center;gap:4px}
 .gps-stop-btn{
   background:rgba(255,255,255,0.25);border:1.5px solid rgba(255,255,255,0.4);
   border-radius:10px;padding:6px 12px;font-size:.72rem;font-weight:700;color:#fff;
-  transition:all .18s;
+  transition:all .18s;display:flex;align-items:center;gap:4px;
 }
 .gps-stop-btn:hover{background:rgba(255,255,255,0.35)}
 
@@ -261,10 +337,10 @@ input{font-family:var(--font)}
 .pill{
   flex-shrink:0;padding:7px 16px;border-radius:20px;
   background:var(--g2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  border:1.5px solid var(--gb);box-shadow:0 3px 12px var(--sh);
-  font-size:.7rem;font-weight:600;color:var(--sub);transition:all .2s;white-space:nowrap;
+  border:1.5px solid var(--card-border);box-shadow:0 3px 12px var(--sh);
+  font-size:.7rem;font-weight:600;color:var(--sub);transition:all .25s;white-space:nowrap;
 }
-.pill:hover{background:rgba(255,255,255,.98);color:var(--text)}
+.pill:hover{color:var(--text)}
 .pill.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(29,184,150,.4)}
 
 /* Cards strip */
@@ -275,19 +351,20 @@ input{font-family:var(--font)}
 #cards::-webkit-scrollbar{display:none}
 
 .rc{
-  flex-shrink:0;width:172px;
-  background:var(--g2);backdrop-filter:blur(20px) saturate(1.8);
+  flex-shrink:0;width:180px;
+  background:var(--card-bg);backdrop-filter:blur(20px) saturate(1.8);
   -webkit-backdrop-filter:blur(20px) saturate(1.8);
-  border:1.5px solid var(--gb);border-radius:20px;
-  box-shadow:0 6px 24px var(--sh),0 1px 0 rgba(255,255,255,.8) inset;
+  border:1.5px solid var(--card-border);border-radius:20px;
+  box-shadow:0 6px 24px var(--sh),0 1px 0 rgba(255,255,255,.1) inset;
   padding:14px;cursor:pointer;
-  transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s,border-color .2s;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s,border-color .25s;
   position:relative;overflow:hidden;
 }
 .rc::before{content:'';position:absolute;inset:0;border-radius:20px;
-  background:linear-gradient(135deg,rgba(255,255,255,.55),transparent);pointer-events:none}
+  background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);pointer-events:none}
+html.dark .rc::before{background:linear-gradient(135deg,rgba(255,255,255,.04),transparent)}
 .rc:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 14px 40px var(--sh2)}
-.rc.active{border-color:var(--rc);background:rgba(255,255,255,.95);
+.rc.active{border-color:var(--rc);
   transform:translateY(-6px) scale(1.03);
   box-shadow:0 16px 48px var(--sh2),0 0 0 2px color-mix(in srgb,var(--rc) 25%,transparent)}
 .rc.hidden{display:none}
@@ -299,83 +376,105 @@ input{font-family:var(--font)}
   box-shadow:0 4px 12px color-mix(in srgb,var(--rc) 50%,transparent);
   transition:transform .2s}
 .rc.active .rc-num{transform:scale(1.08)}
-.rc-eye{width:28px;height:28px;border-radius:9px;background:rgba(0,0,0,.06);
+.rc-actions{display:flex;gap:4px}
+.rc-eye,.rc-fav{width:28px;height:28px;border-radius:9px;background:var(--hover-bg);
   display:flex;align-items:center;justify-content:center;color:var(--sub);
-  transition:all .18s;flex-shrink:0}
+  transition:all .2s;flex-shrink:0}
 .rc.active .rc-eye{background:var(--rc);color:#fff}
+.rc-fav.saved{color:var(--accent)}
+.rc-fav.saved svg{fill:var(--accent)}
 .rc-name{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:3px}
 .rc-desc{font-size:.63rem;color:var(--sub);line-height:1.4}
-.rc-meta{display:flex;align-items:center;gap:4px;margin-top:8px;
-  font-size:.62rem;color:var(--sub);font-weight:500}
+.rc-meta{display:flex;align-items:center;gap:6px;margin-top:8px;
+  font-size:.6rem;color:var(--sub);font-weight:500}
 .rc-dot{width:6px;height:6px;border-radius:50%;background:var(--rc)}
+.rc-meta-item{display:flex;align-items:center;gap:3px}
+.rc-meta-item svg{flex-shrink:0}
 
 /* BOTTOM NAV */
 #bnav{
   margin:0 12px 20px;pointer-events:all;
   background:var(--g2);backdrop-filter:blur(24px) saturate(2);
   -webkit-backdrop-filter:blur(24px) saturate(2);
-  border:1.5px solid var(--gb);border-radius:28px;
-  box-shadow:0 8px 40px var(--sh2),0 1px 0 rgba(255,255,255,.9) inset;
+  border:1.5px solid var(--card-border);border-radius:28px;
+  box-shadow:0 8px 40px var(--sh2),0 1px 0 rgba(255,255,255,.1) inset;
   padding:10px 16px;display:flex;align-items:center;justify-content:space-between;
+  transition:background .3s,border-color .3s;
 }
 .nav-grp{display:flex;align-items:center;flex:1;justify-content:space-around}
 .ni{display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:6px 14px;border-radius:14px;transition:all .2s;background:none;border:none}
-.ni:hover{background:rgba(0,0,0,.05)}
-.ni.active{background:rgba(0,0,0,.06)}
-.ni-ic{font-size:19px;transition:all .2s}
+  padding:6px 14px;border-radius:14px;transition:all .25s;border:none}
+.ni:hover{background:var(--hover-bg)}
+.ni.active{background:var(--hover-bg)}
+.ni-ic{display:flex;align-items:center;justify-content:center;transition:all .2s}
+.ni-ic svg{color:var(--sub);transition:color .2s}
+.ni.active .ni-ic svg{color:var(--accent)}
 .ni-lb{font-size:.58rem;color:var(--sub);font-weight:500;transition:color .2s}
 .ni.active .ni-lb{color:var(--text);font-weight:700}
 .nav-plus{
   width:52px;height:52px;border-radius:18px;
   background:linear-gradient(135deg,var(--accent),var(--acb));
   box-shadow:0 6px 20px rgba(29,184,150,.45);
-  display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;
+  display:flex;align-items:center;justify-content:center;color:#fff;
   transition:transform .2s,box-shadow .2s;flex-shrink:0;
 }
 .nav-plus:hover{transform:scale(1.08);box-shadow:0 8px 28px rgba(29,184,150,.55)}
 .nav-plus:active{transform:scale(.96)}
+.nav-plus svg{transition:transform .3s}
+.nav-plus.on svg{transform:rotate(45deg)}
 
 /* POPUP */
 #popup{
   position:fixed;bottom:0;left:0;right:0;z-index:800;
   background:var(--g3);border-radius:28px 28px 0 0;
-  box-shadow:0 -20px 60px var(--sh2),0 -1px 0 rgba(255,255,255,.9);
+  box-shadow:0 -20px 60px var(--sh2);
   padding:0 24px 40px;
   transform:translateY(100%);transition:transform .4s cubic-bezier(.32,1,.6,1);
   max-height:80vh;overflow-y:auto;
 }
 #popup.show{transform:translateY(0)}
 #popup::-webkit-scrollbar{display:none}
-.popup-handle{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,.1);
+.popup-handle{width:40px;height:4px;border-radius:2px;background:var(--divider);
   margin:14px auto 20px}
+.pp-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
 .pp-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;
-  border-radius:10px;font-weight:800;font-size:.78rem;color:#fff;margin-bottom:12px}
-.pp-name{font-size:1.1rem;font-weight:800;margin-bottom:4px}
-.pp-via{font-size:.72rem;color:var(--sub);margin-bottom:18px;line-height:1.5}
-.pp-div{height:1px;background:rgba(0,0,0,.07);margin-bottom:14px}
+  border-radius:10px;font-weight:800;font-size:.78rem;color:#fff}
+.pp-name{font-size:1.1rem;font-weight:800;margin-bottom:4px;color:var(--text)}
+.pp-via{font-size:.72rem;color:var(--sub);margin-bottom:14px;line-height:1.5}
+.pp-stats{display:flex;gap:12px;margin-bottom:16px}
+.pp-stat{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:12px;
+  background:var(--hover-bg);font-size:.7rem;font-weight:600;color:var(--sub)}
+.pp-stat svg{flex-shrink:0}
+.pp-stat-val{color:var(--text);font-weight:800}
+.pp-div{height:1px;background:var(--divider);margin-bottom:14px}
 .pp-sec{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;
-  color:var(--sub);font-weight:600;margin-bottom:10px}
+  color:var(--sub);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .pp-stop{display:flex;align-items:flex-start;gap:10px}
 .pp-sl{display:flex;flex-direction:column;align-items:center;padding-top:3px}
 .pp-dot{width:9px;height:9px;border-radius:50%;background:var(--rc);
-  flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--rc)}
-.pp-bar{width:2px;min-height:14px;background:linear-gradient(var(--rc),rgba(0,0,0,.06));flex:1}
+  flex-shrink:0;border:2px solid var(--g3);box-shadow:0 0 0 1.5px var(--rc)}
+.pp-bar{width:2px;min-height:14px;background:linear-gradient(var(--rc),var(--divider));flex:1}
 .pp-stop:last-child .pp-bar{display:none}
 .pp-sname{font-size:.73rem;color:var(--text);padding:1px 0 14px;font-weight:500;line-height:1.3}
 .pp-sname.term{font-weight:700}
+.pp-stop-num{
+  width:18px;height:18px;border-radius:6px;background:var(--rc);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;font-weight:800;color:#fff;flex-shrink:0;
+}
 .pp-actions{display:flex;gap:8px;margin-top:18px}
-.pp-btn{flex:1;padding:11px;border-radius:14px;border:1.5px solid rgba(0,0,0,.08);
-  background:rgba(0,0,0,.04);font-size:.73rem;font-weight:600;
-  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s}
-.pp-btn:hover{background:rgba(0,0,0,.08)}
+.pp-btn{flex:1;padding:11px;border-radius:14px;border:1.5px solid var(--divider);
+  background:var(--hover-bg);font-size:.73rem;font-weight:600;color:var(--text);
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.pp-btn:hover{background:var(--input-bg)}
+.pp-btn svg{flex-shrink:0}
 .pp-btn.pri{background:var(--rc);border-color:var(--rc);color:#fff;
   box-shadow:0 4px 14px color-mix(in srgb,var(--rc) 40%,transparent)}
 .pp-btn.pri:hover{filter:brightness(1.08)}
 .pp-close{position:absolute;top:20px;right:20px;width:30px;height:30px;
-  border-radius:10px;background:rgba(0,0,0,.07);display:flex;align-items:center;
-  justify-content:center;font-size:13px;color:var(--sub);transition:background .15s}
-.pp-close:hover{background:rgba(0,0,0,.12)}
+  border-radius:10px;background:var(--hover-bg);display:flex;align-items:center;
+  justify-content:center;color:var(--sub);transition:background .15s}
+.pp-close:hover{background:var(--input-bg)}
 
 /* RIDE BTN inside popup */
 .pp-ride{
@@ -383,9 +482,10 @@ input{font-family:var(--font)}
   background:linear-gradient(135deg,var(--accent),var(--acb));
   color:#fff;font-size:.88rem;font-weight:700;
   display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 6px 20px rgba(29,184,150,.35);transition:all .2s;
+  box-shadow:0 6px 20px rgba(29,184,150,.35);transition:all .25s;
 }
 .pp-ride:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(29,184,150,.45)}
+.pp-ride svg{flex-shrink:0}
 
 /* OVERLAY */
 #ov{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0);
@@ -394,18 +494,19 @@ input{font-family:var(--font)}
 
 /* TOAST */
 #toast{position:fixed;top:auto;bottom:200px;left:50%;transform:translateX(-50%) translateY(8px);
-  z-index:2000;background:var(--text);color:#fff;
+  z-index:2000;background:var(--text);color:var(--bg);
   padding:9px 20px;border-radius:14px;font-size:.73rem;font-weight:500;
   opacity:0;pointer-events:none;transition:all .3s;white-space:nowrap;
-  box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;gap:6px}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* PROFILE SHEET */
 #profile-sheet{
-  position:fixed;top:0;right:0;bottom:0;width:280px;z-index:900;
+  position:fixed;top:0;right:0;bottom:0;width:290px;z-index:900;
   background:var(--g3);box-shadow:-20px 0 60px var(--sh2);
   transform:translateX(100%);transition:transform .35s cubic-bezier(.32,1,.6,1);
-  padding:60px 24px 40px;display:flex;flex-direction:column;gap:16px;
+  padding:60px 24px 40px;display:flex;flex-direction:column;gap:14px;
+  overflow-y:auto;
 }
 #profile-sheet.show{transform:translateX(0)}
 .ps-avatar{
@@ -417,18 +518,56 @@ input{font-family:var(--font)}
 }
 .ps-name{font-size:1.1rem;font-weight:800;color:var(--text)}
 .ps-email{font-size:.75rem;color:var(--sub);margin-bottom:8px}
-.ps-div{height:1px;background:rgba(0,0,0,.07)}
+.ps-div{height:1px;background:var(--divider)}
 .ps-btn{
   display:flex;align-items:center;gap:10px;padding:12px;
-  border-radius:14px;background:rgba(0,0,0,.04);border:none;
-  font-size:.82rem;font-weight:600;color:var(--text);transition:all .18s;
+  border-radius:14px;background:var(--hover-bg);border:none;
+  font-size:.82rem;font-weight:600;color:var(--text);transition:all .2s;width:100%;
 }
-.ps-btn:hover{background:rgba(0,0,0,.08)}
+.ps-btn:hover{background:var(--input-bg)}
+.ps-btn svg{color:var(--sub);flex-shrink:0}
 .ps-btn.danger{color:var(--danger)}
+.ps-btn.danger svg{color:var(--danger)}
 .ps-close{position:absolute;top:16px;right:16px;width:30px;height:30px;
-  border-radius:10px;background:rgba(0,0,0,.07);display:flex;align-items:center;
-  justify-content:center;font-size:13px;color:var(--sub)}
-.ps-close:hover{background:rgba(0,0,0,.12)}
+  border-radius:10px;background:var(--hover-bg);display:flex;align-items:center;
+  justify-content:center;color:var(--sub);transition:background .15s}
+.ps-close:hover{background:var(--input-bg)}
+/* dark mode toggle */
+.ps-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;
+  border-radius:14px;background:var(--hover-bg);font-size:.82rem;font-weight:600;color:var(--text);
+}
+.ps-toggle-left{display:flex;align-items:center;gap:10px}
+.ps-toggle-left svg{color:var(--sub);flex-shrink:0}
+.toggle-switch{
+  width:44px;height:24px;border-radius:12px;
+  background:var(--input-bg);border:1.5px solid var(--divider);
+  position:relative;cursor:pointer;transition:all .25s;flex-shrink:0;
+}
+.toggle-switch.on{background:var(--accent);border-color:var(--accent)}
+.toggle-knob{
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);
+  position:absolute;top:2px;left:2px;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.toggle-switch.on .toggle-knob{transform:translateX(20px)}
+
+/* SAVED ROUTES VIEW */
+#saved-view{
+  position:fixed;inset:0;z-index:600;
+  background:var(--bg);
+  display:none;flex-direction:column;padding-top:14px;
+  overflow-y:auto;
+}
+#saved-view.show{display:flex}
+.sv-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;padding:40px;text-align:center;
+}
+.sv-empty svg{color:var(--sub);opacity:.4;margin-bottom:12px}
+.sv-empty-title{font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.sv-empty-sub{font-size:.72rem;color:var(--sub)}
 
 /* GRID view for routes tab */
 #routes-grid{
@@ -440,15 +579,15 @@ input{font-family:var(--font)}
 #routes-grid.show{display:flex}
 .rg-header{display:flex;align-items:center;gap:12px;padding:14px 20px;
   background:var(--g2);backdrop-filter:blur(16px);
-  border-bottom:1px solid rgba(0,0,0,.08);}
-.rg-back{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,.06);
-  display:flex;align-items:center;justify-content:center;font-size:18px}
-.rg-back:hover{background:rgba(0,0,0,.1)}
-.rg-title{font-size:1rem;font-weight:800}
+  border-bottom:1px solid var(--divider);}
+.rg-back{width:36px;height:36px;border-radius:12px;background:var(--hover-bg);
+  display:flex;align-items:center;justify-content:center;color:var(--text);transition:background .15s}
+.rg-back:hover{background:var(--input-bg)}
+.rg-title{font-size:1rem;font-weight:800;color:var(--text)}
 .rg-body{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .rg-card{
-  background:var(--g2);border:1.5px solid var(--gb);border-radius:18px;
-  padding:16px;cursor:pointer;transition:all .2s;
+  background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:18px;
+  padding:16px;cursor:pointer;transition:all .25s;
   box-shadow:0 4px 16px var(--sh);
 }
 .rg-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--sh2)}
@@ -457,28 +596,30 @@ input{font-family:var(--font)}
   font-weight:800;font-size:1rem;color:#fff;
   box-shadow:0 4px 12px color-mix(in srgb,var(--rc) 50%,transparent);
   margin-bottom:10px}
-.rg-name{font-size:.82rem;font-weight:700;margin-bottom:3px}
+.rg-name{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px}
 .rg-desc{font-size:.65rem;color:var(--sub);line-height:1.4}
 
 /* Leaflet overrides */
 .leaflet-popup-content-wrapper{
-  background:rgba(255,255,255,.95)!important;border:none!important;
+  background:var(--g3)!important;border:none!important;
   border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,.15)!important}
-.leaflet-popup-tip{background:rgba(255,255,255,.95)!important}
-.leaflet-popup-content{margin:12px 14px!important;font-family:var(--font)!important}
+.leaflet-popup-tip{background:var(--g3)!important}
+.leaflet-popup-content{margin:12px 14px!important;font-family:var(--font)!important;color:var(--text)!important}
 .pop-badge{display:inline-block;padding:2px 8px;border-radius:7px;
   font-weight:800;font-size:.7rem;color:#fff;margin-bottom:5px}
-.pop-stop{font-size:.78rem;font-weight:700}
+.pop-stop{font-size:.78rem;font-weight:700;color:var(--text)}
 .pop-line{font-size:.64rem;color:var(--sub);margin-top:2px}
 .leaflet-control-zoom a{
   background:var(--g2)!important;backdrop-filter:blur(12px)!important;
-  border:1.5px solid var(--gb)!important;color:var(--text)!important;
+  border:1.5px solid var(--card-border)!important;color:var(--text)!important;
   box-shadow:0 4px 14px var(--sh)!important;
   border-radius:12px!important;font-size:16px!important;
   width:34px!important;height:34px!important;line-height:32px!important;
   margin-bottom:4px!important;
 }
 .leaflet-control-zoom{border:none!important}
+
+html.dark .leaflet-tile{filter:brightness(0.7) contrast(1.1) saturate(0.9)}
 
 /* BUS MARKER on map */
 .bus-marker-wrap{
@@ -487,13 +628,42 @@ input{font-family:var(--font)}
   background:linear-gradient(135deg,var(--accent),var(--acb));
   border:3px solid #fff;
   box-shadow:0 4px 16px rgba(29,184,150,.5);
-  font-size:18px;
   animation:bus-pulse 2s ease-in-out infinite;
 }
+.bus-marker-wrap svg{color:#fff}
 @keyframes bus-pulse{
   0%,100%{box-shadow:0 4px 16px rgba(29,184,150,.5),0 0 0 0 rgba(29,184,150,.3)}
   50%{box-shadow:0 4px 16px rgba(29,184,150,.5),0 0 0 10px rgba(29,184,150,0)}
 }
+
+/* Stop number marker */
+.stop-num-marker{
+  display:flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:7px;
+  font-family:var(--font);font-weight:800;font-size:.6rem;color:#fff;
+  border:2px solid #fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+
+/* User location marker */
+.user-loc-marker{
+  width:16px;height:16px;border-radius:50%;
+  background:var(--acb);
+  border:3px solid #fff;
+  box-shadow:0 2px 10px rgba(14,165,233,.5),0 0 0 0 rgba(14,165,233,.3);
+  animation:user-pulse 2s ease-in-out infinite;
+}
+@keyframes user-pulse{
+  0%,100%{box-shadow:0 2px 10px rgba(14,165,233,.5),0 0 0 0 rgba(14,165,233,.3)}
+  50%{box-shadow:0 2px 10px rgba(14,165,233,.5),0 0 0 12px rgba(14,165,233,0)}
+}
+
+/* Polyline animated */
+.animated-poly{
+  stroke-dasharray:12 6;
+  animation:dash-move 1.5s linear infinite;
+}
+@keyframes dash-move{to{stroke-dashoffset:-18}}
 
 /* Animations */
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -502,237 +672,401 @@ input{font-family:var(--font)}
 .rc:nth-child(3){animation-delay:.12s}.rc:nth-child(4){animation-delay:.16s}
 .rc:nth-child(5){animation-delay:.20s}.rc:nth-child(6){animation-delay:.24s}
 .rc:nth-child(7){animation-delay:.28s}.rc:nth-child(8){animation-delay:.32s}
+
+/* Tablet+ responsive */
+@media(min-width:600px){
+  #topbar{min-width:420px}
+  #searchbar{width:420px}
+  .rc{width:200px}
+  #profile-sheet{width:340px}
+}
+@media(min-width:900px){
+  #topbar{min-width:480px}
+  #searchbar{width:480px}
+  .rg-body{grid-template-columns:1fr 1fr 1fr}
+}
 </style>
 </head>
 <body>
 
-<!-- ════ SPLASH ════ -->
-<div class="screen active" id="s-splash">
+<!-- ======== SPLASH ======== -->
+<div class="screen active" id="s-splash" role="alert" aria-label="Cargando TuxtlaRutas">
   <div class="splash-glow"></div>
-  <div class="splash-logo">🚌</div>
+  <div class="splash-logo">
+    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+  </div>
   <div class="splash-title">Tuxtla<span>Rutas</span></div>
-  <div class="splash-sub">Colectivos Urbanos · Tuxtla Gutiérrez, Chiapas</div>
+  <div class="splash-sub">Colectivos Urbanos - Tuxtla Gutierrez, Chiapas</div>
+  <div class="splash-progress"><div class="splash-progress-bar"></div></div>
 </div>
 
-<!-- ════ AUTH ════ -->
-<div class="screen" id="s-auth">
-  <div class="auth-bg-bus">🚌</div>
+<!-- ======== AUTH ======== -->
+<div class="screen" id="s-auth" role="main" aria-label="Iniciar sesion">
+  <div class="auth-bg-deco">
+    <svg width="160" height="160" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+  </div>
   <div class="auth-header">
-    <div class="auth-header-logo">Tuxtla<span>Rutas</span></div>
-    <div class="auth-header-sub">Tu guía de colectivos urbanos</div>
+    <div class="auth-header-logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+      Tuxtla<span>Rutas</span>
+    </div>
+    <div class="auth-header-sub">Tu guia de colectivos urbanos</div>
   </div>
   <div class="auth-sheet">
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Iniciar sesión</button>
-      <button class="auth-tab" id="tab-reg" onclick="switchTab('reg')">Registrarse</button>
+    <div class="auth-tabs" role="tablist">
+      <button class="auth-tab active" id="tab-login" role="tab" aria-selected="true" onclick="switchTab('login')">Iniciar sesion</button>
+      <button class="auth-tab" id="tab-reg" role="tab" aria-selected="false" onclick="switchTab('reg')">Registrarse</button>
     </div>
 
     <!-- LOGIN -->
-    <div id="form-login">
-      <div class="auth-error" id="err-login"></div>
+    <div id="form-login" role="tabpanel">
+      <div class="auth-error" id="err-login" role="alert"></div>
       <div class="field">
-        <label>Correo electrónico</label>
+        <label for="li-email">Correo electronico</label>
         <div class="field-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
-          <input type="email" id="li-email" placeholder="tu@correo.com"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+          <input type="email" id="li-email" placeholder="tu@correo.com" autocomplete="email"/>
         </div>
       </div>
       <div class="field">
-        <label>Contraseña</label>
+        <label for="li-pass">Contrasena</label>
         <div class="field-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <input type="password" id="li-pass" placeholder="••••••••"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="li-pass" placeholder="********" autocomplete="current-password"/>
         </div>
       </div>
-      <button class="auth-btn" onclick="doLogin()">Entrar →</button>
-      <div class="auth-divider">o continúa sin cuenta</div>
-      <button class="auth-guest" onclick="doGuest()">🚌 &nbsp;Explorar como invitado</button>
+      <button class="auth-btn" onclick="doLogin()" aria-label="Iniciar sesion">
+        Entrar
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+      <div class="auth-divider">o continua sin cuenta</div>
+      <button class="auth-guest" onclick="doGuest()" aria-label="Explorar como invitado">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
+        Explorar como invitado
+      </button>
     </div>
 
     <!-- REGISTER -->
-    <div id="form-reg" style="display:none">
-      <div class="auth-error" id="err-reg"></div>
+    <div id="form-reg" style="display:none" role="tabpanel">
+      <div class="auth-error" id="err-reg" role="alert"></div>
       <div class="field">
-        <label>Nombre</label>
+        <label for="rg-name">Nombre</label>
         <div class="field-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-          <input type="text" id="rg-name" placeholder="Tu nombre"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <input type="text" id="rg-name" placeholder="Tu nombre" autocomplete="name"/>
         </div>
       </div>
       <div class="field">
-        <label>Correo electrónico</label>
+        <label for="rg-email">Correo electronico</label>
         <div class="field-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
-          <input type="email" id="rg-email" placeholder="tu@correo.com"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+          <input type="email" id="rg-email" placeholder="tu@correo.com" autocomplete="email"/>
         </div>
       </div>
       <div class="field">
-        <label>Contraseña</label>
+        <label for="rg-pass">Contrasena</label>
         <div class="field-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <input type="password" id="rg-pass" placeholder="mínimo 6 caracteres"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="rg-pass" placeholder="minimo 6 caracteres" autocomplete="new-password"/>
         </div>
       </div>
-      <button class="auth-btn" onclick="doRegister()">Crear cuenta →</button>
-      <div class="auth-divider">o continúa sin cuenta</div>
-      <button class="auth-guest" onclick="doGuest()">🚌 &nbsp;Explorar como invitado</button>
+      <button class="auth-btn" onclick="doRegister()" aria-label="Crear cuenta">
+        Crear cuenta
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+      <div class="auth-divider">o continua sin cuenta</div>
+      <button class="auth-guest" onclick="doGuest()" aria-label="Explorar como invitado">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
+        Explorar como invitado
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ════ MAIN APP ════ -->
+<!-- ======== MAIN APP ======== -->
 <div class="screen" id="s-app">
 
-  <div id="map"></div>
+  <div id="map" role="application" aria-label="Mapa de rutas de colectivos"></div>
+
+  <!-- GPS Locate button -->
+  <button id="gps-locate" aria-label="Centrar en mi ubicacion">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+  </button>
 
   <!-- Top bar -->
-  <div id="topbar">
-    <div class="tb-icon">🚌</div>
+  <div id="topbar" role="banner">
+    <div class="tb-icon" aria-hidden="true">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+    </div>
     <div>
       <div class="tb-title">Tuxtla<span>Rutas</span></div>
-      <div class="tb-sub">Colectivos Urbanos · Chiapas</div>
+      <div class="tb-sub">Colectivos Urbanos</div>
     </div>
     <div class="tb-div"></div>
     <div class="tb-stat"><div class="tb-n" id="stat-n">0</div><div class="tb-l">Activas</div></div>
     <div class="tb-div"></div>
     <div class="tb-stat"><div class="tb-n">8</div><div class="tb-l">Rutas</div></div>
-    <div class="tb-avatar" id="tb-avatar" onclick="openProfile()">?</div>
+    <button class="tb-avatar" id="tb-avatar" onclick="openProfile()" aria-label="Abrir perfil">?</button>
   </div>
 
   <!-- Search -->
   <div id="searchbar">
     <div class="si">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="s-in" type="text" placeholder="Buscar ruta o parada…"/>
-      <button id="sc">✕</button>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="s-in" type="text" placeholder="Buscar ruta o parada..." aria-label="Buscar ruta o parada"/>
+      <button id="sc" aria-label="Limpiar busqueda">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
     </div>
   </div>
 
   <!-- GPS riding banner -->
-  <div id="gps-banner">
-    <div class="gps-bus-anim">🚌</div>
+  <div id="gps-banner" role="status" aria-live="polite">
+    <div class="gps-bus-anim">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+    </div>
     <div class="gps-info">
       <div class="gps-route-lbl">En camino</div>
-      <div class="gps-route-name" id="gps-rname">—</div>
-      <div class="gps-speed" id="gps-speed">📍 Calculando…</div>
+      <div class="gps-route-name" id="gps-rname">--</div>
+      <div class="gps-speed" id="gps-speed">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+        Calculando...
+      </div>
     </div>
-    <button class="gps-stop-btn" onclick="stopRiding()">Bajar 🚏</button>
+    <button class="gps-stop-btn" onclick="stopRiding()" aria-label="Bajar del colectivo">
+      Bajar
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+    </button>
   </div>
 
   <!-- Bottom panel -->
   <div id="panel">
-    <div id="pills">
-      <button class="pill active" data-zone="all">Todas las rutas</button>
-      <button class="pill" data-zone="norte">Norte</button>
-      <button class="pill" data-zone="centro">Centro</button>
-      <button class="pill" data-zone="sur">Sur</button>
-      <button class="pill" data-zone="oriente">Oriente</button>
+    <div id="pills" role="tablist" aria-label="Filtrar por zona">
+      <button class="pill active" data-zone="all" role="tab" aria-selected="true">Todas las rutas</button>
+      <button class="pill" data-zone="norte" role="tab">Norte</button>
+      <button class="pill" data-zone="centro" role="tab">Centro</button>
+      <button class="pill" data-zone="sur" role="tab">Sur</button>
+      <button class="pill" data-zone="oriente" role="tab">Oriente</button>
     </div>
-    <div id="cards"></div>
-    <div id="bnav">
+    <div id="cards" role="list" aria-label="Rutas disponibles"></div>
+    <div class="no-results" id="no-results">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M8 11h6"/></svg>
+      <div>Sin resultados. Intenta otra busqueda.</div>
+    </div>
+    <div id="bnav" role="navigation" aria-label="Navegacion principal">
       <div class="nav-grp">
-        <button class="ni active" data-nav="home">
-          <span class="ni-ic">🏠</span><span class="ni-lb">Inicio</span>
+        <button class="ni active" data-nav="home" aria-label="Inicio">
+          <span class="ni-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+          <span class="ni-lb">Inicio</span>
         </button>
-        <button class="ni" data-nav="routes">
-          <span class="ni-ic">🗂️</span><span class="ni-lb">Rutas</span>
+        <button class="ni" data-nav="routes" aria-label="Ver todas las rutas">
+          <span class="ni-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg></span>
+          <span class="ni-lb">Rutas</span>
         </button>
       </div>
-      <button class="nav-plus" id="nav-plus">＋</button>
+      <button class="nav-plus" id="nav-plus" aria-label="Mostrar u ocultar todas las rutas">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      </button>
       <div class="nav-grp">
-        <button class="ni" data-nav="saved">
-          <span class="ni-ic">🔖</span><span class="ni-lb">Guardadas</span>
+        <button class="ni" data-nav="saved" aria-label="Rutas guardadas">
+          <span class="ni-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></span>
+          <span class="ni-lb">Guardadas</span>
         </button>
-        <button class="ni" data-nav="map">
-          <span class="ni-ic">🗺️</span><span class="ni-lb">Mapa</span>
+        <button class="ni" data-nav="map" aria-label="Centrar mapa">
+          <span class="ni-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></span>
+          <span class="ni-lb">Mapa</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Saved routes view -->
+  <div id="saved-view">
+    <div class="rg-header">
+      <button class="rg-back" onclick="closeSavedView()" aria-label="Volver">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
+      <div class="rg-title">Rutas Guardadas</div>
+    </div>
+    <div id="saved-body" class="rg-body"></div>
+    <div class="sv-empty" id="sv-empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+      <div class="sv-empty-title">Sin rutas guardadas</div>
+      <div class="sv-empty-sub">Toca el icono de marcador en una ruta para guardarla aqui.</div>
     </div>
   </div>
 
   <!-- Routes grid view -->
   <div id="routes-grid">
     <div class="rg-header">
-      <button class="rg-back" onclick="closeRoutesGrid()">←</button>
+      <button class="rg-back" onclick="closeRoutesGrid()" aria-label="Volver">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
       <div class="rg-title">Todas las Rutas</div>
     </div>
     <div class="rg-body" id="rg-body"></div>
   </div>
 
   <!-- Popup -->
-  <div id="popup">
+  <div id="popup" role="dialog" aria-label="Detalle de ruta">
     <div class="popup-handle"></div>
-    <button class="pp-close" onclick="closePopup()">✕</button>
+    <button class="pp-close" onclick="closePopup()" aria-label="Cerrar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
     <div id="pp-badge" class="pp-badge"></div>
     <div id="pp-name" class="pp-name"></div>
     <div id="pp-via" class="pp-via"></div>
+    <div id="pp-route-stats" class="pp-stats"></div>
     <div class="pp-div"></div>
-    <div class="pp-sec">Paradas</div>
+    <div class="pp-sec">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+      Paradas
+    </div>
     <div id="pp-stops"></div>
     <div class="pp-actions">
-      <button class="pp-btn" id="pp-toggle"><span id="pp-ti">👁</span> <span id="pp-tl">Ver en mapa</span></button>
-      <button class="pp-btn pri" id="pp-zoom">🎯 Enfocar</button>
+      <button class="pp-btn" id="pp-toggle" aria-label="Mostrar u ocultar ruta en mapa">
+        <svg id="pp-ti" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="pp-tl">Ver en mapa</span>
+      </button>
+      <button class="pp-btn pri" id="pp-zoom" aria-label="Enfocar ruta en mapa">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+        Enfocar
+      </button>
     </div>
-    <button class="pp-ride" id="pp-ride">🚌 ¡Subirse a esta ruta!</button>
+    <button class="pp-ride" id="pp-ride" aria-label="Subirse a esta ruta">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+      Subirse a esta ruta
+    </button>
   </div>
 
   <!-- Overlay -->
   <div id="ov" onclick="closePopup()"></div>
 
   <!-- Profile sheet -->
-  <div id="profile-sheet">
-    <button class="ps-close" onclick="closeProfile()">✕</button>
+  <div id="profile-sheet" role="dialog" aria-label="Perfil de usuario">
+    <button class="ps-close" onclick="closeProfile()" aria-label="Cerrar perfil">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
     <div class="ps-avatar" id="ps-av">?</div>
     <div class="ps-name" id="ps-name">Invitado</div>
     <div class="ps-email" id="ps-email">Sin cuenta</div>
     <div class="ps-div"></div>
-    <button class="ps-btn" onclick="closeProfile()">🗺️ &nbsp;Ver mapa</button>
-    <button class="ps-btn" onclick="closeProfile()">🔖 &nbsp;Rutas guardadas</button>
-    <button class="ps-btn" onclick="closeProfile()">⚙️ &nbsp;Configuración</button>
+    <div class="ps-toggle">
+      <div class="ps-toggle-left">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        Modo oscuro
+      </div>
+      <div class="toggle-switch" id="dark-toggle" onclick="toggleDarkMode()" role="switch" aria-label="Alternar modo oscuro">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+    <button class="ps-btn" onclick="closeProfile();resetMapView()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>
+      Ver mapa
+    </button>
+    <button class="ps-btn" onclick="closeProfile();openSavedView()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+      Rutas guardadas
+    </button>
     <div class="ps-div"></div>
-    <button class="ps-btn danger" id="ps-logout" onclick="doLogout()">← &nbsp;Cerrar sesión</button>
+    <button class="ps-btn danger" id="ps-logout" onclick="doLogout()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+      Cerrar sesion
+    </button>
   </div>
 
 </div>
 
 <!-- TOAST -->
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  USERS DB (localStorage)
-// ══════════════════════════════════════════════════════
+// ====================================================
 function getUsers(){try{return JSON.parse(localStorage.getItem('tr_users')||'[]')}catch{return[]}}
 function saveUsers(u){localStorage.setItem('tr_users',JSON.stringify(u))}
 function getSession(){try{return JSON.parse(localStorage.getItem('tr_session')||'null')}catch{return null}}
 function saveSession(u){localStorage.setItem('tr_session',JSON.stringify(u))}
 function clearSession(){localStorage.removeItem('tr_session')}
 
-// ══════════════════════════════════════════════════════
+// ====================================================
+//  FAVORITES (localStorage)
+// ====================================================
+function getFavorites(){try{return JSON.parse(localStorage.getItem('tr_favs')||'[]')}catch{return[]}}
+function saveFavorites(f){localStorage.setItem('tr_favs',JSON.stringify(f))}
+function isFavorite(id){return getFavorites().includes(id)}
+function toggleFavorite(id){
+  let favs=getFavorites();
+  if(favs.includes(id)){favs=favs.filter(x=>x!==id);showToast('Ruta removida de guardadas')}
+  else{favs.push(id);showToast('Ruta guardada')}
+  saveFavorites(favs);
+  updateFavButtons();
+  vibrate();
+}
+function updateFavButtons(){
+  const favs=getFavorites();
+  document.querySelectorAll('.rc-fav').forEach(btn=>{
+    const id=btn.dataset.route;
+    const saved=favs.includes(id);
+    btn.classList.toggle('saved',saved);
+    btn.innerHTML=saved
+      ?'<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>'
+      :'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>';
+  });
+}
+
+// ====================================================
+//  DARK MODE
+// ====================================================
+function getDarkPref(){return localStorage.getItem('tr_dark')==='true'}
+function toggleDarkMode(){
+  const isDark=!document.documentElement.classList.contains('dark');
+  document.documentElement.classList.toggle('dark',isDark);
+  localStorage.setItem('tr_dark',isDark);
+  document.getElementById('dark-toggle').classList.toggle('on',isDark);
+  document.querySelector('meta[name="theme-color"]').content=isDark?'#0f1720':'#0d1f2d';
+  vibrate();
+}
+// Apply on load
+if(getDarkPref()){
+  document.documentElement.classList.add('dark');
+  document.getElementById('dark-toggle').classList.add('on');
+  document.querySelector('meta[name="theme-color"]').content='#0f1720';
+}
+
+// ====================================================
+//  HAPTIC FEEDBACK
+// ====================================================
+function vibrate(ms=10){try{navigator.vibrate(ms)}catch{}}
+
+// ====================================================
 //  ROUTES DATA
-// ══════════════════════════════════════════════════════
+// ====================================================
 const ROUTES=[
   {id:'R1',num:'1',color:'#f43f5e',zone:'norte',name:'Ruta 1',
-   desc:'Albania Alta → Av. Central → Patria Nueva',
-   via:'Blvd. Belisario Domínguez · Av. Central Ote.',
+   desc:'Albania Alta - Av. Central - Patria Nueva',
+   via:'Blvd. Belisario Dominguez - Av. Central Ote.',
+   freq:'Cada 10-15 min',
    stops:[
     {name:'Albania Alta',lat:16.7638,lng:-93.1847,terminal:true},
-    {name:'Blvd. B. Domínguez & 30ª Pte.',lat:16.7591,lng:-93.1722},
-    {name:'Blvd. B. Domínguez & 15ª Pte.',lat:16.7561,lng:-93.1530},
+    {name:'Blvd. B. Dominguez & 30a Pte.',lat:16.7591,lng:-93.1722},
+    {name:'Blvd. B. Dominguez & 15a Pte.',lat:16.7561,lng:-93.1530},
     {name:'Central Camionera',lat:16.7553,lng:-93.1303},
     {name:'Calle Central & Av. Central',lat:16.7520,lng:-93.1145},
     {name:'Catedral San Marcos',lat:16.7513,lng:-93.1120},
     {name:'Parque de la Marimba',lat:16.7499,lng:-93.1042},
-    {name:'Av. Central & 12ª Ote.',lat:16.7494,lng:-93.0940},
+    {name:'Av. Central & 12a Ote.',lat:16.7494,lng:-93.0940},
     {name:'Patria Nueva',lat:16.7478,lng:-93.0812,terminal:true},
    ],
    path:[[16.7638,-93.1847],[16.7600,-93.1780],[16.7591,-93.1722],[16.7561,-93.1530],[16.7553,-93.1303],[16.7525,-93.1210],[16.7520,-93.1145],[16.7513,-93.1120],[16.7499,-93.1042],[16.7494,-93.0940],[16.7478,-93.0812]]},
   {id:'R2',num:'2',color:'#f97316',zone:'norte',name:'Ruta 2',
-   desc:'Monte Cristo → Central → Col. Popular',
-   via:'Blvd. B. Domínguez · 5ª Norte · Lib. Sur',
+   desc:'Monte Cristo - Central - Col. Popular',
+   via:'Blvd. B. Dominguez - 5a Norte - Lib. Sur',
+   freq:'Cada 12-18 min',
    stops:[
     {name:'Monte Cristo',lat:16.7648,lng:-93.1875,terminal:true},
-    {name:'Blvd. B. Domínguez & Fovissste',lat:16.7592,lng:-93.1610},
+    {name:'Blvd. B. Dominguez & Fovissste',lat:16.7592,lng:-93.1610},
     {name:'Central Camionera',lat:16.7554,lng:-93.1305},
     {name:'Mercado Juan Sabines',lat:16.7541,lng:-93.1195},
     {name:'Calle Central (Centro)',lat:16.7520,lng:-93.1148},
@@ -741,41 +1075,45 @@ const ROUTES=[
    ],
    path:[[16.7648,-93.1875],[16.7592,-93.1610],[16.7568,-93.1440],[16.7554,-93.1305],[16.7541,-93.1195],[16.7520,-93.1148],[16.7382,-93.1068],[16.7374,-93.0845]]},
   {id:'R8',num:'8',color:'#eab308',zone:'norte',name:'Ruta 8',
-   desc:'Centro → Fovissste → UNICACH',
-   via:'Blvd. Belisario Domínguez Pte.',
+   desc:'Centro - Fovissste - UNICACH',
+   via:'Blvd. Belisario Dominguez Pte.',
+   freq:'Cada 15-20 min',
    stops:[
     {name:'Calle Central (Centro)',lat:16.7520,lng:-93.1150,terminal:true},
     {name:'Hospital ISSSTE',lat:16.7548,lng:-93.1372},
-    {name:'Col. Paraíso Fovissste',lat:16.7578,lng:-93.1598},
+    {name:'Col. Paraiso Fovissste',lat:16.7578,lng:-93.1598},
     {name:'Prof. Daniel Robles Sasso',lat:16.7600,lng:-93.1700},
     {name:'UNICACH Campus I',lat:16.7645,lng:-93.1832,terminal:true},
    ],
    path:[[16.7520,-93.1150],[16.7548,-93.1372],[16.7562,-93.1500],[16.7578,-93.1598],[16.7600,-93.1700],[16.7645,-93.1832]]},
   {id:'R11',num:'11',color:'#22c55e',zone:'oriente',name:'Ruta 11',
-   desc:'Centro → Morelos → Fco. I. Madero',
+   desc:'Centro - Morelos - Fco. I. Madero',
    via:'Av. Central Oriente',
+   freq:'Cada 10-15 min',
    stops:[
     {name:'Parque de la Marimba',lat:16.7499,lng:-93.1042,terminal:true},
-    {name:'Av. Central & 4ª Ote.',lat:16.7499,lng:-93.0980},
+    {name:'Av. Central & 4a Ote.',lat:16.7499,lng:-93.0980},
     {name:'Col. Morelos',lat:16.7510,lng:-93.0845},
     {name:'Jardines del Grijalva',lat:16.7508,lng:-93.0730},
     {name:'Col. Francisco I. Madero',lat:16.7492,lng:-93.0572,terminal:true},
    ],
    path:[[16.7499,-93.1042],[16.7499,-93.0980],[16.7505,-93.0870],[16.7510,-93.0845],[16.7508,-93.0730],[16.7492,-93.0572]]},
   {id:'R34',num:'34',color:'#06b6d4',zone:'sur',name:'Ruta 34',
-   desc:'Centro → Xamaipak → Ampliación Terán',
-   via:'9ª Sur · Libramiento Sur',
+   desc:'Centro - Xamaipak - Ampliacion Teran',
+   via:'9a Sur - Libramiento Sur',
+   freq:'Cada 15-20 min',
    stops:[
-    {name:'Calle Central (1ª Calle Sur)',lat:16.7510,lng:-93.1132,terminal:true},
+    {name:'Calle Central (1a Calle Sur)',lat:16.7510,lng:-93.1132,terminal:true},
     {name:'Col. Xamaipak',lat:16.7428,lng:-93.1200},
     {name:'Col. Buenos Aires',lat:16.7380,lng:-93.1310},
     {name:'Cobach 01',lat:16.7348,lng:-93.1420},
-    {name:'Ampliación Terán',lat:16.7310,lng:-93.1528,terminal:true},
+    {name:'Ampliacion Teran',lat:16.7310,lng:-93.1528,terminal:true},
    ],
    path:[[16.7510,-93.1132],[16.7450,-93.1132],[16.7428,-93.1200],[16.7380,-93.1310],[16.7348,-93.1420],[16.7310,-93.1528]]},
   {id:'R41',num:'41',color:'#a855f7',zone:'oriente',name:'Ruta 41',
-   desc:'Centro → Col. Retiro → Frac. El Roble',
-   via:'5ª Norte · Paseo Usumacinta',
+   desc:'Centro - Col. Retiro - Frac. El Roble',
+   via:'5a Norte - Paseo Usumacinta',
+   freq:'Cada 12-18 min',
    stops:[
     {name:'Catedral (Calle Central)',lat:16.7513,lng:-93.1118,terminal:true},
     {name:'Mercado D. Chanona',lat:16.7535,lng:-93.1052},
@@ -785,59 +1123,91 @@ const ROUTES=[
    ],
    path:[[16.7513,-93.1118],[16.7535,-93.1052],[16.7558,-93.0938],[16.7572,-93.0870],[16.7598,-93.0760],[16.7622,-93.0650]]},
   {id:'R43',num:'43',color:'#ec4899',zone:'sur',name:'Ruta 43',
-   desc:'Juan Crispín → Industrial → Abastos',
-   via:'Carr. Panamericana · Libramiento Sur',
+   desc:'Juan Crispin - Industrial - Abastos',
+   via:'Carr. Panamericana - Libramiento Sur',
+   freq:'Cada 15-20 min',
    stops:[
-    {name:'Juan Crispín (Carr. Panamericana)',lat:16.7310,lng:-93.1600,terminal:true},
+    {name:'Juan Crispin (Carr. Panamericana)',lat:16.7310,lng:-93.1600,terminal:true},
     {name:'Libramiento Sur Pte.',lat:16.7362,lng:-93.1370},
     {name:'Zona Industrial',lat:16.7368,lng:-93.1110},
-    {name:'La Misión',lat:16.7445,lng:-93.0962},
+    {name:'La Mision',lat:16.7445,lng:-93.0962},
     {name:'Central de Abastos',lat:16.7481,lng:-93.0802,terminal:true},
    ],
    path:[[16.7310,-93.1600],[16.7345,-93.1515],[16.7362,-93.1370],[16.7368,-93.1110],[16.7415,-93.1010],[16.7445,-93.0962],[16.7481,-93.0802]]},
   {id:'R64',num:'64',color:'#14b8a6',zone:'centro',name:'Ruta 64',
-   desc:'Marimba → Vista Hermosa → Fco. I. Madero',
-   via:'Blvd. Ángel Albino Corzo',
+   desc:'Marimba - Vista Hermosa - Fco. I. Madero',
+   via:'Blvd. Angel Albino Corzo',
+   freq:'Cada 10-15 min',
    stops:[
     {name:'Parque de la Marimba',lat:16.7499,lng:-93.1042,terminal:true},
     {name:'Col. Vista Hermosa',lat:16.7452,lng:-93.0900},
-    {name:'Blvd. Á. Albino Corzo & Pensil',lat:16.7448,lng:-93.0808},
-    {name:'Samuel León Brindis',lat:16.7449,lng:-93.0720},
+    {name:'Blvd. A. Albino Corzo & Pensil',lat:16.7448,lng:-93.0808},
+    {name:'Samuel Leon Brindis',lat:16.7449,lng:-93.0720},
     {name:'Col. Francisco I. Madero',lat:16.7492,lng:-93.0572,terminal:true},
    ],
    path:[[16.7499,-93.1042],[16.7462,-93.0980],[16.7452,-93.0900],[16.7448,-93.0808],[16.7449,-93.0720],[16.7492,-93.0572]]},
 ];
 
-// ══════════════════════════════════════════════════════
+// ====================================================
+//  UTILITY: Calculate route distance (haversine)
+// ====================================================
+function haversine(lat1,lng1,lat2,lng2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function routeDistance(path){
+  let d=0;
+  for(let i=1;i<path.length;i++) d+=haversine(path[i-1][0],path[i-1][1],path[i][0],path[i][1]);
+  return d;
+}
+function formatDist(km){return km<1?(km*1000).toFixed(0)+' m':km.toFixed(1)+' km'}
+function estimateTime(km){return Math.max(5,Math.round(km/18*60))}
+
+// ====================================================
 //  APP STATE
-// ══════════════════════════════════════════════════════
-let map,layers={},activeCount=0,allVisible=false;
+// ====================================================
+let map,layers={},activeCount=0;
 let openId=null,ridingId=null,busMarker=null,rideInterval=null;
 let currentUser=null;
 let ridePathIndex=0;
+let userLocMarker=null;
+let watchId=null;
 
-// ══════════════════════════════════════════════════════
-//  SPLASH → AUTH or APP
-// ══════════════════════════════════════════════════════
+// ====================================================
+//  SPLASH -> AUTH or APP
+// ====================================================
 setTimeout(()=>{
-  document.getElementById('s-splash').classList.remove('active');
-  const session=getSession();
-  if(session){
-    currentUser=session;
-    startApp();
-  } else {
-    document.getElementById('s-auth').classList.add('active');
-  }
-},2000);
+  const splash=document.getElementById('s-splash');
+  splash.style.opacity='0';
+  setTimeout(()=>{
+    splash.classList.remove('active');
+    splash.style.opacity='';
+    const session=getSession();
+    if(session){
+      currentUser=session;
+      startApp();
+    } else {
+      const auth=document.getElementById('s-auth');
+      auth.classList.add('active');
+      requestAnimationFrame(()=>auth.style.opacity='1');
+    }
+  },350);
+},2200);
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  AUTH LOGIC
-// ══════════════════════════════════════════════════════
+// ====================================================
 function switchTab(t){
   document.getElementById('tab-login').classList.toggle('active',t==='login');
   document.getElementById('tab-reg').classList.toggle('active',t==='reg');
+  document.getElementById('tab-login').setAttribute('aria-selected',t==='login');
+  document.getElementById('tab-reg').setAttribute('aria-selected',t==='reg');
   document.getElementById('form-login').style.display=t==='login'?'block':'none';
   document.getElementById('form-reg').style.display=t==='reg'?'block':'none';
+  vibrate();
 }
 
 function showErr(id,msg){
@@ -851,10 +1221,9 @@ function doLogin(){
   if(!email||!pass){showErr('err-login','Por favor llena todos los campos');return}
   const users=getUsers();
   const u=users.find(x=>x.email===email&&x.pass===pass);
-  if(!u){showErr('err-login','Correo o contraseña incorrectos');return}
+  if(!u){showErr('err-login','Correo o contrasena incorrectos');return}
   currentUser=u;saveSession(u);
-  document.getElementById('s-auth').classList.remove('active');
-  startApp();
+  transitionTo('s-auth','s-app',()=>startApp());
 }
 
 function doRegister(){
@@ -862,20 +1231,31 @@ function doRegister(){
   const email=document.getElementById('rg-email').value.trim();
   const pass=document.getElementById('rg-pass').value;
   if(!name||!email||!pass){showErr('err-reg','Por favor llena todos los campos');return}
-  if(pass.length<6){showErr('err-reg','La contraseña debe tener al menos 6 caracteres');return}
+  if(pass.length<6){showErr('err-reg','La contrasena debe tener al menos 6 caracteres');return}
   const users=getUsers();
-  if(users.find(x=>x.email===email)){showErr('err-reg','Este correo ya está registrado');return}
+  if(users.find(x=>x.email===email)){showErr('err-reg','Este correo ya esta registrado');return}
   const u={name,email,pass,initials:name.slice(0,2).toUpperCase()};
   users.push(u);saveUsers(users);
   currentUser=u;saveSession(u);
-  document.getElementById('s-auth').classList.remove('active');
-  startApp();
+  transitionTo('s-auth','s-app',()=>startApp());
 }
 
 function doGuest(){
   currentUser={name:'Invitado',email:'',initials:'?',guest:true};
-  document.getElementById('s-auth').classList.remove('active');
-  startApp();
+  transitionTo('s-auth','s-app',()=>startApp());
+}
+
+function transitionTo(fromId,toId,cb){
+  const from=document.getElementById(fromId);
+  const to=document.getElementById(toId);
+  from.style.opacity='0';
+  setTimeout(()=>{
+    from.classList.remove('active');
+    from.style.opacity='';
+    to.classList.add('active');
+    to.style.opacity='1';
+    if(cb)cb();
+  },350);
 }
 
 function doLogout(){
@@ -885,7 +1265,6 @@ function doLogout(){
   clearInterval(rideInterval);
   clearSession();
   currentUser=null;
-  // reset map layers
   Object.values(layers).forEach(l=>{
     try{map.removeLayer(l.out)}catch{}
     try{map.removeLayer(l.poly)}catch{}
@@ -895,14 +1274,13 @@ function doLogout(){
   activeCount=0;
   document.querySelectorAll('.rc').forEach(c=>c.classList.remove('active'));
   document.getElementById('gps-banner').classList.remove('show');
-  document.getElementById('s-app').classList.remove('active');
-  document.getElementById('s-auth').classList.add('active');
-  showToast('Sesión cerrada');
+  transitionTo('s-app','s-auth',null);
+  showToast('Sesion cerrada');
 }
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  START APP
-// ══════════════════════════════════════════════════════
+// ====================================================
 function startApp(){
   document.getElementById('s-app').classList.add('active');
   updateAvatar();
@@ -915,18 +1293,20 @@ function updateAvatar(){
   document.getElementById('ps-av').textContent=init;
   document.getElementById('ps-name').textContent=currentUser?.name||'Invitado';
   document.getElementById('ps-email').textContent=currentUser?.email||'Sin cuenta';
-  document.getElementById('ps-logout').textContent=currentUser?.guest?'← Iniciar sesión':'← Cerrar sesión';
+  document.getElementById('ps-logout').innerHTML=`
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+    ${currentUser?.guest?'Iniciar sesion':'Cerrar sesion'}`;
 }
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  MAP INIT
-// ══════════════════════════════════════════════════════
+// ====================================================
 function initMap(){
   map=L.map('map',{center:[16.7510,-93.1150],zoom:13,zoomControl:false,attributionControl:false});
   L.control.zoom({position:'topright'}).addTo(map);
   L.control.attribution({position:'bottomright',prefix:false}).addTo(map);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-    attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>',
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains:'abcd',maxZoom:20,
   }).addTo(map);
   buildLayers();
@@ -938,47 +1318,73 @@ function initMap(){
 function buildLayers(){
   ROUTES.forEach(r=>{
     const out=L.polyline(r.path,{color:'#fff',weight:10,opacity:.4,lineCap:'round',lineJoin:'round'});
-    const poly=L.polyline(r.path,{color:r.color,weight:6,opacity:.93,lineCap:'round',lineJoin:'round'});
+    const poly=L.polyline(r.path,{color:r.color,weight:6,opacity:.93,lineCap:'round',lineJoin:'round',className:'animated-poly'});
     const markers=r.stops.map((s,i)=>{
-      const isE=i===0||i===r.stops.length-1;const sz=isE?18:11;
+      const isE=i===0||i===r.stops.length-1;
+      const sz=isE?22:22;
+      const num=i+1;
       const icon=L.divIcon({className:'',
-        html:`<div style="width:${sz}px;height:${sz}px;background:${r.color};border:${isE?3:2}px solid #fff;border-radius:50%;box-shadow:0 2px ${isE?10:5}px ${r.color}88,0 1px 3px rgba(0,0,0,.2)"></div>`,
-        iconAnchor:[sz/2,sz/2],iconSize:[sz,sz]});
+        html:`<div class="stop-num-marker" style="background:${r.color}">${num}</div>`,
+        iconAnchor:[11,11],iconSize:[22,22]});
       const m=L.marker([s.lat,s.lng],{icon});
-      m.bindPopup(`<span class="pop-badge" style="background:${r.color}">Ruta ${r.num}</span><div class="pop-stop">${s.terminal?'🏁 ':'🚏 '}${s.name}</div><div class="pop-line">${r.via}</div>`,{maxWidth:220,closeButton:false});
+      m.bindPopup(`<span class="pop-badge" style="background:${r.color}">Ruta ${r.num}</span><div class="pop-stop">${isE?'<b>':''}${s.name}${isE?'</b>':''}</div><div class="pop-line">Parada ${num} de ${r.stops.length} &middot; ${r.via}</div>`,{maxWidth:220,closeButton:false});
       return m;
     });
     layers[r.id]={out,poly,markers,visible:false};
   });
 }
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  CARDS
-// ══════════════════════════════════════════════════════
+// ====================================================
 function buildCards(){
   const strip=document.getElementById('cards');strip.innerHTML='';
   ROUTES.forEach(r=>{
+    const dist=routeDistance(r.path);
+    const time=estimateTime(dist);
     const c=document.createElement('div');
     c.className='rc';c.id=`rc-${r.id}`;
+    c.setAttribute('role','listitem');
     c.dataset.zone=r.zone;
     c.dataset.search=`${r.name} ${r.desc} ${r.stops.map(s=>s.name).join(' ')}`.toLowerCase();
     c.style.setProperty('--rc',r.color);
     c.innerHTML=`
       <div class="rc-top">
         <div class="rc-num">${r.num}</div>
-        <div class="rc-eye">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <div class="rc-actions">
+          <button class="rc-fav" data-route="${r.id}" aria-label="Guardar ruta ${r.num}" onclick="event.stopPropagation();toggleFavorite('${r.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+          </button>
+          <button class="rc-eye" aria-label="Ver ruta ${r.num} en mapa">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
       </div>
       <div class="rc-name">${r.name}</div>
       <div class="rc-desc">${r.desc}</div>
-      <div class="rc-meta"><span class="rc-dot"></span>${r.stops.length} paradas</div>`;
+      <div class="rc-meta">
+        <span class="rc-dot"></span>
+        <span class="rc-meta-item">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+          ${r.stops.length}
+        </span>
+        <span class="rc-meta-item">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          ${formatDist(dist)}
+        </span>
+        <span class="rc-meta-item">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ~${time}m
+        </span>
+      </div>`;
     c.addEventListener('click',e=>{
-      if(e.target.closest('.rc-eye')){toggleRoute(r.id);return}
-      openPopup(r.id);
+      if(e.target.closest('.rc-eye')){toggleRoute(r.id);vibrate();return}
+      if(e.target.closest('.rc-fav'))return;
+      openPopup(r.id);vibrate();
     });
     strip.appendChild(c);
   });
+  updateFavButtons();
 }
 
 function buildRoutesGrid(){
@@ -994,9 +1400,9 @@ function buildRoutesGrid(){
   });
 }
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  TOGGLE ROUTE
-// ══════════════════════════════════════════════════════
+// ====================================================
 function toggleRoute(id,fit=true){
   const s=layers[id],r=ROUTES.find(x=>x.id===id);
   const card=document.getElementById(`rc-${id}`);
@@ -1004,31 +1410,53 @@ function toggleRoute(id,fit=true){
     map.removeLayer(s.out);map.removeLayer(s.poly);
     s.markers.forEach(m=>map.removeLayer(m));
     s.visible=false;activeCount--;card.classList.remove('active');
-    showToast(`Ruta ${r.num} ocultada`);
+    showToast('Ruta '+r.num+' ocultada');
   } else {
     s.out.addTo(map);s.poly.addTo(map);
     s.markers.forEach(m=>m.addTo(map));
     s.visible=true;activeCount++;card.classList.add('active');
     if(fit)map.fitBounds(r.path,{padding:[80,80],maxZoom:15});
-    showToast(`Ruta ${r.num} activada ✓`);
+    showToast('Ruta '+r.num+' activada');
   }
   document.getElementById('stat-n').textContent=activeCount;
   if(openId===id)updatePPButtons(r);
 }
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  POPUP
-// ══════════════════════════════════════════════════════
+// ====================================================
 function openPopup(id){
   const r=ROUTES.find(x=>x.id===id);openId=id;
-  document.getElementById('pp-badge').textContent=`Ruta ${r.num}`;
+  const dist=routeDistance(r.path);
+  const time=estimateTime(dist);
+  document.getElementById('pp-badge').textContent='Ruta '+r.num;
   document.getElementById('pp-badge').style.background=r.color;
   document.getElementById('pp-name').textContent=r.name;
-  document.getElementById('pp-via').textContent=`${r.desc}\nVía: ${r.via}`;
+  document.getElementById('pp-via').textContent=r.desc+'\nVia: '+r.via;
   document.getElementById('popup').style.setProperty('--rc',r.color);
-  document.getElementById('pp-stops').innerHTML=r.stops.map(s=>`
+  document.getElementById('pp-route-stats').innerHTML=`
+    <div class="pp-stat">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+      <span class="pp-stat-val">${r.stops.length}</span> paradas
+    </div>
+    <div class="pp-stat">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      <span class="pp-stat-val">${formatDist(dist)}</span>
+    </div>
+    <div class="pp-stat">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      ~<span class="pp-stat-val">${time}</span> min
+    </div>
+    <div class="pp-stat">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      ${r.freq}
+    </div>`;
+  document.getElementById('pp-stops').innerHTML=r.stops.map((s,i)=>`
     <div class="pp-stop">
-      <div class="pp-sl"><div class="pp-dot"></div><div class="pp-bar"></div></div>
+      <div class="pp-sl">
+        <div class="pp-stop-num" style="background:${r.color}">${i+1}</div>
+        <div class="pp-bar"></div>
+      </div>
       <div class="pp-sname ${s.terminal?'term':''}">${s.name}</div>
     </div>`).join('');
   updatePPButtons(r);
@@ -1039,11 +1467,17 @@ function openPopup(id){
 
 function updatePPButtons(r){
   const vis=layers[r.id].visible;
-  document.getElementById('pp-ti').textContent=vis?'🙈':'👁';
+  const eyeIcon=vis
+    ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>'
+    :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+  document.getElementById('pp-ti').innerHTML=eyeIcon;
   document.getElementById('pp-tl').textContent=vis?'Ocultar':'Ver en mapa';
   const riding=ridingId===r.id;
-  document.getElementById('pp-ride').textContent=riding?'🚏 Bajar del colectivo':'🚌 ¡Subirse a esta ruta!';
-  document.getElementById('pp-ride').style.background=riding
+  const rideBtn=document.getElementById('pp-ride');
+  rideBtn.innerHTML=riding
+    ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg> Bajar del colectivo'
+    :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg> Subirse a esta ruta';
+  rideBtn.style.background=riding
     ?'linear-gradient(135deg,#f43f5e,#ec4899)'
     :'linear-gradient(135deg,var(--accent),var(--acb))';
 }
@@ -1054,49 +1488,54 @@ function closePopup(){
   openId=null;
 }
 
-document.getElementById('pp-toggle').addEventListener('click',()=>{if(openId)toggleRoute(openId)});
+document.getElementById('pp-toggle').addEventListener('click',()=>{if(openId){toggleRoute(openId);vibrate()}});
 document.getElementById('pp-zoom').addEventListener('click',()=>{
   if(!openId)return;
   const r=ROUTES.find(x=>x.id===openId);
   if(!layers[openId].visible)toggleRoute(openId,false);
   map.fitBounds(r.path,{padding:[80,80],maxZoom:15});
-  closePopup();
+  closePopup();vibrate();
 });
 document.getElementById('pp-ride').addEventListener('click',()=>{
   if(openId){
     if(ridingId===openId){stopRiding();}
     else{startRiding(openId);}
+    vibrate(20);
   }
 });
 
-// ══════════════════════════════════════════════════════
-//  RIDING MODE 🚌
-// ══════════════════════════════════════════════════════
+// ====================================================
+//  RIDING MODE
+// ====================================================
 function startRiding(id){
   if(ridingId){stopRiding(false)}
   const r=ROUTES.find(x=>x.id===id);ridingId=id;ridePathIndex=0;
   if(!layers[id].visible)toggleRoute(id,false);
-  // create bus marker
   const busIcon=L.divIcon({className:'',
-    html:`<div class="bus-marker-wrap">🚌</div>`,
+    html:'<div class="bus-marker-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg></div>',
     iconAnchor:[18,18],iconSize:[36,36]});
   const startPt=r.path[0];
   busMarker=L.marker(startPt,{icon:busIcon,zIndexOffset:1000}).addTo(map);
   map.setView(startPt,15);
-  // animate bus along path
   rideInterval=setInterval(()=>{
     ridePathIndex=(ridePathIndex+1)%r.path.length;
     const pt=r.path[ridePathIndex];
     busMarker.setLatLng(pt);
     map.panTo(pt,{animate:true,duration:0.8});
+    // Find nearest stop for status
+    let nearest=r.stops[0],minD=Infinity;
+    r.stops.forEach(s=>{
+      const d=haversine(pt[0],pt[1],s.lat,s.lng);
+      if(d<minD){minD=d;nearest=s}
+    });
+    document.getElementById('gps-speed').innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg> Cerca de: '+nearest.name;
   },2000);
-  // banner
-  document.getElementById('gps-rname').textContent=`${r.name} · ${r.desc}`;
-  document.getElementById('gps-speed').textContent='📍 En movimiento · ~30 km/h';
+  document.getElementById('gps-rname').textContent=r.name+' - '+r.desc;
+  document.getElementById('gps-speed').innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg> En movimiento';
   document.getElementById('gps-banner').classList.add('show');
   if(openId===id)updatePPButtons(r);
   closePopup();
-  showToast('🚌 ¡Subiste a la Ruta '+r.num+'!');
+  showToast('Subiste a la Ruta '+r.num);
 }
 
 function stopRiding(toast=true){
@@ -1105,15 +1544,16 @@ function stopRiding(toast=true){
   const prevId=ridingId;ridingId=null;ridePathIndex=0;
   document.getElementById('gps-banner').classList.remove('show');
   if(prevId&&openId===prevId)updatePPButtons(ROUTES.find(x=>x.id===prevId));
-  if(toast)showToast('🚏 Bajaste del colectivo');
+  if(toast)showToast('Bajaste del colectivo');
 }
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  ALL ROUTES TOGGLE
-// ══════════════════════════════════════════════════════
+// ====================================================
 let plusOn=false;
 document.getElementById('nav-plus').addEventListener('click',()=>{
   plusOn=!plusOn;activeCount=0;
+  const btn=document.getElementById('nav-plus');
   ROUTES.forEach(r=>{
     const s=layers[r.id],c=document.getElementById(`rc-${r.id}`);
     if(plusOn){
@@ -1125,51 +1565,76 @@ document.getElementById('nav-plus').addEventListener('click',()=>{
     }
   });
   document.getElementById('stat-n').textContent=activeCount;
-  const btn=document.getElementById('nav-plus');
-  btn.style.background=plusOn
-    ?'linear-gradient(135deg,#f43f5e,#ec4899)'
-    :'linear-gradient(135deg,var(--accent),var(--acb))';
-  btn.textContent=plusOn?'✕':'＋';
+  btn.classList.toggle('on',plusOn);
   if(plusOn){map.fitBounds(ROUTES.flatMap(r=>r.path),{padding:[60,60]});showToast('Todas las rutas visibles')}
   else showToast('Rutas ocultadas');
+  vibrate();
 });
 
-// ══════════════════════════════════════════════════════
-//  SEARCH
-// ══════════════════════════════════════════════════════
+// ====================================================
+//  SEARCH (with stop name matching & no results)
+// ====================================================
 document.getElementById('s-in').addEventListener('input',e=>{
   const q=e.target.value.toLowerCase().trim();
   document.getElementById('sc').classList.toggle('show',q.length>0);
-  document.querySelectorAll('.rc').forEach(c=>c.classList.toggle('hidden',q&&!c.dataset.search.includes(q)));
+  let visibleCount=0;
+  document.querySelectorAll('.rc').forEach(c=>{
+    const hidden=q&&!c.dataset.search.includes(q);
+    c.classList.toggle('hidden',hidden);
+    if(!hidden)visibleCount++;
+  });
+  document.getElementById('no-results').classList.toggle('show',q.length>0&&visibleCount===0);
 });
 document.getElementById('sc').addEventListener('click',()=>{
   document.getElementById('s-in').value='';
   document.getElementById('sc').classList.remove('show');
+  document.getElementById('no-results').classList.remove('show');
   document.querySelectorAll('.rc').forEach(c=>c.classList.remove('hidden'));
   document.getElementById('s-in').focus();
 });
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  FILTER PILLS
-// ══════════════════════════════════════════════════════
+// ====================================================
 document.getElementById('pills').addEventListener('click',e=>{
   const p=e.target.closest('.pill');if(!p)return;
-  document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
-  p.classList.add('active');const z=p.dataset.zone;
+  document.querySelectorAll('.pill').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-selected','false')});
+  p.classList.add('active');p.setAttribute('aria-selected','true');
+  const z=p.dataset.zone;
   document.querySelectorAll('.rc').forEach(c=>c.classList.toggle('hidden',z!=='all'&&c.dataset.zone!==z));
+  vibrate();
 });
 
-// ══════════════════════════════════════════════════════
+// ====================================================
 //  NAV ITEMS
-// ══════════════════════════════════════════════════════
+// ====================================================
 function setupEvents(){
   document.querySelectorAll('.ni').forEach(btn=>{
     btn.addEventListener('click',()=>{
       document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
       btn.classList.add('active');
       if(btn.dataset.nav==='routes') openRoutesGrid();
+      else if(btn.dataset.nav==='saved') openSavedView();
+      else if(btn.dataset.nav==='map') resetMapView();
+      vibrate();
     });
   });
+  // GPS Locate
+  document.getElementById('gps-locate').addEventListener('click',locateUser);
+  // Keyboard: Escape to close
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      if(document.getElementById('popup').classList.contains('show'))closePopup();
+      else if(document.getElementById('profile-sheet').classList.contains('show'))closeProfile();
+      else if(document.getElementById('routes-grid').classList.contains('show'))closeRoutesGrid();
+      else if(document.getElementById('saved-view').classList.contains('show'))closeSavedView();
+    }
+  });
+}
+
+function resetMapView(){
+  if(map)map.setView([16.7510,-93.1150],13,{animate:true});
+  showToast('Vista del mapa reiniciada');
 }
 
 function openRoutesGrid(){document.getElementById('routes-grid').classList.add('show')}
@@ -1180,15 +1645,88 @@ function closeRoutesGrid(){
   if(homeBtn)homeBtn.classList.add('active');
 }
 
-// ══════════════════════════════════════════════════════
-//  PROFILE
-// ══════════════════════════════════════════════════════
-function openProfile(){document.getElementById('profile-sheet').classList.add('show')}
-function closeProfile(){document.getElementById('profile-sheet').classList.remove('show')}
+// ====================================================
+//  SAVED ROUTES VIEW
+// ====================================================
+function openSavedView(){
+  const view=document.getElementById('saved-view');
+  const body=document.getElementById('saved-body');
+  const empty=document.getElementById('sv-empty');
+  const favs=getFavorites();
+  body.innerHTML='';
+  if(favs.length===0){
+    empty.style.display='flex';
+  } else {
+    empty.style.display='none';
+    favs.forEach(fid=>{
+      const r=ROUTES.find(x=>x.id===fid);
+      if(!r)return;
+      const c=document.createElement('div');
+      c.className='rg-card';c.style.setProperty('--rc',r.color);
+      c.innerHTML=`<div class="rg-num" style="background:${r.color}">${r.num}</div>
+        <div class="rg-name">${r.name}</div>
+        <div class="rg-desc">${r.desc}</div>`;
+      c.addEventListener('click',()=>{closeSavedView();openPopup(r.id)});
+      body.appendChild(c);
+    });
+  }
+  view.classList.add('show');
+}
+function closeSavedView(){
+  document.getElementById('saved-view').classList.remove('show');
+  const homeBtn=document.querySelector('.ni[data-nav="home"]');
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  if(homeBtn)homeBtn.classList.add('active');
+}
 
-// ══════════════════════════════════════════════════════
+// ====================================================
+//  GPS LOCATE USER
+// ====================================================
+function locateUser(){
+  const btn=document.getElementById('gps-locate');
+  if(!navigator.geolocation){showToast('Geolocalizacion no disponible');return}
+  btn.classList.add('active');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude,lng=pos.coords.longitude;
+    if(userLocMarker)map.removeLayer(userLocMarker);
+    const icon=L.divIcon({className:'',html:'<div class="user-loc-marker"></div>',iconAnchor:[8,8],iconSize:[16,16]});
+    userLocMarker=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
+    map.setView([lat,lng],15,{animate:true});
+    // Find nearest stop
+    let nearestStop=null,nearestRoute=null,minD=Infinity;
+    ROUTES.forEach(r=>{
+      r.stops.forEach(s=>{
+        const d=haversine(lat,lng,s.lat,s.lng);
+        if(d<minD){minD=d;nearestStop=s;nearestRoute=r}
+      });
+    });
+    if(nearestStop&&nearestRoute){
+      showToast('Parada mas cercana: '+nearestStop.name+' (Ruta '+nearestRoute.num+')');
+    } else {
+      showToast('Ubicacion encontrada');
+    }
+    setTimeout(()=>btn.classList.remove('active'),3000);
+  },err=>{
+    btn.classList.remove('active');
+    showToast('No se pudo obtener tu ubicacion');
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+// ====================================================
+//  PROFILE
+// ====================================================
+function openProfile(){
+  document.getElementById('profile-sheet').classList.add('show');
+  document.getElementById('ov').classList.add('show');
+}
+function closeProfile(){
+  document.getElementById('profile-sheet').classList.remove('show');
+  document.getElementById('ov').classList.remove('show');
+}
+
+// ====================================================
 //  TOAST
-// ══════════════════════════════════════════════════════
+// ====================================================
 let ttimer;
 function showToast(msg){
   const t=document.getElementById('toast');
